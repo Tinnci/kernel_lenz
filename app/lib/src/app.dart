@@ -7,7 +7,6 @@ import 'package:kernel_lens_app/src/common/widgets/glass_card.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_progress_card.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_controller.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_state.dart';
-import 'package:kernel_lens_app/src/rust/api.dart';
 
 class KernelLensApp extends ConsumerWidget {
   const KernelLensApp({super.key});

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:kernel_lens_app/src/rust/api.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_state.dart';
@@ -89,7 +90,7 @@ class AnalysisController extends _$AnalysisController {
       }
     } catch (e) {
       // Quietly fail or handle error
-      print("Error loading more symbols: $e");
+      developer.log("Error loading more symbols", error: e);
     }
   }
 
