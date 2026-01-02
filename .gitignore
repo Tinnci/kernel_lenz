@@ -5,9 +5,8 @@
 # --- Rust ---
 /target/
 **/*.rs.bk
-Cargo.lock
-# Note: Cargo.lock is intentionally tracked for binaries
-# Uncomment above line only for pure libraries
+# Note: Cargo.lock is tracked for binaries/applications to ensure reproducible builds.
+# For pure libraries, it should be ignored. This project contains CLI tools, so we track it.
 
 # --- Flutter/Dart ---
 app/.dart_tool/
