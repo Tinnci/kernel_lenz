@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:kernel_lens_app/src/common/theme/app_theme.dart';
@@ -36,56 +37,132 @@ class MainScreen extends ConsumerWidget {
     final selectedIndex = ref.watch(navigationIndexProvider);
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          NavigationRail(
-            selectedIndex: selectedIndex,
-            extended: true,
-            minExtendedWidth: 200,
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.analytics_outlined),
-                selectedIcon: Icon(Icons.analytics),
-                label: Text('Analysis'),
+          Row(
+            children: [
+              NavigationRail(
+                selectedIndex: selectedIndex,
+                extended: true,
+                minExtendedWidth: 200,
+                destinations: const [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.analytics_outlined),
+                    selectedIcon: Icon(Icons.analytics),
+                    label: Text('Analysis'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.history_outlined),
+                    selectedIcon: Icon(Icons.history),
+                    label: Text('History'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.settings_outlined),
+                    selectedIcon: Icon(Icons.settings),
+                    label: Text('Settings'),
+                  ),
+                ],
+                onDestinationSelected: (index) {
+                  ref.read(navigationIndexProvider.notifier).state = index;
+                },
               ),
-              NavigationRailDestination(
-                icon: Icon(Icons.history_outlined),
-                selectedIcon: Icon(Icons.history),
-                label: Text('History'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: Text('Settings'),
+              const VerticalDivider(thickness: 1, width: 1),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: 300.ms,
+                  child: _buildBody(selectedIndex),
+                ),
               ),
             ],
-            onDestinationSelected: (index) {
-              ref.read(navigationIndexProvider.notifier).state = index;
-            },
           ),
-          const VerticalDivider(thickness: 1, width: 1),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: 300.ms,
-              child: _buildBody(selectedIndex),
-            ),
+          // 2026 Background Task Tray Implementation
+          Positioned(
+            left: 200, // Matching NavigationRail width
+            right: 0,
+            bottom: 0,
+            child: _BackgroundTaskTray(),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildBody(int index) {
-    switch (index) {
-      case 0:
-        return const AnalysisDashboard();
-      case 1:
-        return const Center(child: Text('History (Coming Soon)'));
-      case 2:
-        return const Center(child: Text('Settings (Coming Soon)'));
-      default:
-        return const AnalysisDashboard();
-    }
+class _BackgroundTaskTray extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(analysisControllerProvider);
+    if (state.status != AnalysisStatus.loading) return const SizedBox.shrink();
+
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer.withAlpha(200),
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.primary.withAlpha(50),
+          ),
+        ),
+      ),
+      child:
+          Row(
+            children: [
+              const SpinKitDoubleBounce(color: Colors.white, size: 12),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Running Deep Analysis: ${state.currentStep ?? 'Starting...'}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 100,
+                child: LinearProgressIndicator(
+                  value: state.progress,
+                  minHeight: 2,
+                  backgroundColor: Colors.white.withAlpha(50),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '${((state.progress ?? 0) * 100).toInt()}%',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ).animate().slideY(
+            begin: 1.0,
+            end: 0,
+            duration: 400.ms,
+            curve: Curves.easeOutCubic,
+          ),
+    );
+  }
+}
+
+Widget _buildBody(int index) {
+  switch (index) {
+    case 0:
+      return const AnalysisDashboard();
+    case 1:
+      return const Center(child: Text('History (Coming Soon)'));
+    case 2:
+      return const Center(child: Text('Settings (Coming Soon)'));
+    default:
+      return const AnalysisDashboard();
   }
 }
 
@@ -174,9 +251,11 @@ class AnalysisDashboard extends ConsumerWidget {
                 spacing: 24,
                 runSpacing: 24,
                 children: [
-                  SizedBox(
-                    width: 400,
-                    height: 160,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 400,
+                      maxWidth: 450,
+                    ),
                     child: _buildActionCard(
                       context,
                       title: 'New Analysis',
@@ -202,9 +281,11 @@ class AnalysisDashboard extends ConsumerWidget {
                   ),
                   if (state.status == AnalysisStatus.loading ||
                       state.status == AnalysisStatus.success)
-                    SizedBox(
-                      width: 400,
-                      height: 160,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 400,
+                        maxWidth: 450,
+                      ),
                       child: AnalysisProgressCard(
                         step: state.currentStep ?? 'Analyzing...',
                         progress: state.progress ?? 0.0,
@@ -212,18 +293,22 @@ class AnalysisDashboard extends ConsumerWidget {
                       ),
                     ),
                   if (state.status == AnalysisStatus.failure)
-                    SizedBox(
-                      width: 400,
-                      height: 160,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 400,
+                        maxWidth: 450,
+                      ),
                       child: _buildErrorCard(
                         context,
                         state.error ?? 'Unknown error',
                       ),
                     ),
-                  if (state.status == AnalysisStatus.success) ...[
-                    SizedBox(
-                      width: 400,
-                      height: 160,
+                  if (state.summary != null) ...[
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 400,
+                        maxWidth: 450,
+                      ),
                       child: _buildResultCard(
                         context,
                         'Symbols Found',
@@ -232,9 +317,11 @@ class AnalysisDashboard extends ConsumerWidget {
                         onTap: () => showSymbolsSheet(context, ref),
                       ),
                     ),
-                    SizedBox(
-                      width: 400,
-                      height: 160,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 400,
+                        maxWidth: 450,
+                      ),
                       child: _buildResultCard(
                         context,
                         'Arch',
@@ -242,9 +329,11 @@ class AnalysisDashboard extends ConsumerWidget {
                         Icons.settings_applications,
                       ),
                     ),
-                    SizedBox(
-                      width: 400,
-                      height: 160,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 400,
+                        maxWidth: 450,
+                      ),
                       child: _buildResultCard(
                         context,
                         'ELF Dump',

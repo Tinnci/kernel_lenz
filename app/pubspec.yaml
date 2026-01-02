@@ -48,6 +48,7 @@ dependencies:
   hugeicons: ^1.0.0      # Premium icon set for 2026 aesthetics
   intl: ^0.19.0
   logger: ^2.5.0
+  flutter_spinkit: ^5.2.1
   rust_lib_kernel_lens_app:
     path: rust_builder
 

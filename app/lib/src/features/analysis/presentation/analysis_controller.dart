@@ -56,7 +56,8 @@ class AnalysisController extends _$AnalysisController {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      AppLogger.e('Kernel analysis failed', e, stack);
       state = state.copyWith(
         status: AnalysisStatus.failure,
         error: e.toString(),
