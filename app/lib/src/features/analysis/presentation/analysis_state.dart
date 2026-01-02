@@ -11,6 +11,7 @@ class AnalysisState {
   final List<FrbKernelSymbol>? visibleSymbols;
   final int currentPage;
   final bool hasMore;
+  final bool isLoadingMore;
   final String? error;
 
   const AnalysisState({
@@ -22,6 +23,7 @@ class AnalysisState {
     this.visibleSymbols,
     this.currentPage = 0,
     this.hasMore = true,
+    this.isLoadingMore = false,
     this.error,
   });
 
@@ -34,6 +36,7 @@ class AnalysisState {
     List<FrbKernelSymbol>? visibleSymbols,
     int? currentPage,
     bool? hasMore,
+    bool? isLoadingMore,
     String? error,
   }) {
     return AnalysisState(
@@ -45,6 +48,7 @@ class AnalysisState {
       visibleSymbols: visibleSymbols ?? this.visibleSymbols,
       currentPage: currentPage ?? this.currentPage,
       hasMore: hasMore ?? this.hasMore,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error ?? this.error,
     );
   }

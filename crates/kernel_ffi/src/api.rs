@@ -1,12 +1,11 @@
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 
 pub use kernel_core::boot_image::{BootImageHeader, BootImageVersion};
 pub use kernel_core::compression::CompressionFormat;
 use kernel_core::{BootImage, Decompressor, ElfBuilder, KallsymsFinder};
 
 /// A Flutter-friendly version of KernelSymbol.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct FrbKernelSymbol {
     /// Symbol virtual address.
     pub addr: u64,
@@ -14,6 +13,16 @@ pub struct FrbKernelSymbol {
     pub name: String,
     /// Symbol type string (e.g., "T", "t", "D").
     pub stype: String,
+}
+
+/// Real-time progress update for the analysis pipeline.
+pub struct ProgressUpdate {
+    /// Current analytical step description.
+    pub step: String,
+    /// Progress value from 0.0 to 1.0.
+    pub progress: f32,
+    /// The final session object (only set in the last update).
+    pub session: Option<AnalysisSession>,
 }
 
 /// Column to sort by.
@@ -28,7 +37,7 @@ pub enum SortColumn {
 }
 
 /// Lightweight summary of the analysis result.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct AnalysisSummary {
     /// Size of decomrpessed kernel bytes.
     pub kernel_size: usize,
@@ -51,6 +60,86 @@ pub fn init_app() {
 pub fn get_boot_info(path: String) -> Result<BootImageHeader> {
     let boot_img = BootImage::from_file(path)?;
     Ok(boot_img.header)
+}
+
+/// Analyze a kernel with real-time progress updates.
+pub fn start_analysis(
+    input_path: String,
+    sink: crate::frb_generated::StreamSink<ProgressUpdate>,
+) -> Result<()> {
+    sink.add(ProgressUpdate {
+        step: "Reading file...".to_string(),
+        progress: 0.05,
+        session: None,
+    })
+    .unwrap();
+    let raw_data = std::fs::read(&input_path)?;
+
+    sink.add(ProgressUpdate {
+        step: "Decompressing...".to_string(),
+        progress: 0.1,
+        session: None,
+    })
+    .unwrap();
+    let kernel_data = if raw_data.starts_with(b"ANDROID!") {
+        let boot_img = BootImage::from_bytes(raw_data)?;
+        let kernel = boot_img.extract_kernel()?;
+        Decompressor::decompress(kernel)?
+    } else {
+        Decompressor::decompress(&raw_data)?
+    };
+
+    sink.add(ProgressUpdate {
+        step: "Scanning symbols...".to_string(),
+        progress: 0.4,
+        session: None,
+    })
+    .unwrap();
+    let kallsyms = KallsymsFinder::new(&kernel_data)?.into_result();
+
+    sink.add(ProgressUpdate {
+        step: "Building ELF...".to_string(),
+        progress: 0.7,
+        session: None,
+    })
+    .unwrap();
+    let elf_bytes = ElfBuilder::new(&kernel_data, &kallsyms).build()?;
+
+    sink.add(ProgressUpdate {
+        step: "Finalizing...".to_string(),
+        progress: 0.9,
+        session: None,
+    })
+    .unwrap();
+    let symbols: Vec<FrbKernelSymbol> = kallsyms
+        .symbols
+        .into_iter()
+        .map(|s| FrbKernelSymbol {
+            addr: s.address,
+            name: s.name,
+            stype: s.sym_type.to_string(),
+        })
+        .collect();
+
+    let session = AnalysisSession {
+        summary: AnalysisSummary {
+            kernel_size: kernel_data.len(),
+            arch: format!("{:?}", kallsyms.arch),
+            kernel_base: kallsyms.kernel_base,
+            symbol_count: kallsyms.symbol_count,
+        },
+        symbols,
+        elf_bytes,
+    };
+
+    sink.add(ProgressUpdate {
+        step: "Complete".to_string(),
+        progress: 1.0,
+        session: Some(session),
+    })
+    .unwrap();
+
+    Ok(())
 }
 
 /// Stateful session that holds the analysis data in Rust memory.
@@ -160,20 +249,25 @@ impl AnalysisSession {
     }
 
     /// Read a chunk of the kernel for hex viewing.
+    ///
+    /// Alignment: This method aligns the offset and length to 16 bytes
+    /// to simplify UI rendering (one row = 16 bytes).
     pub fn get_hex_chunk(&self, offset: usize, length: usize) -> HexChunk {
-        let start = offset.min(self.elf_bytes.len());
-        let end = (offset + length).min(self.elf_bytes.len());
+        // Align offset down to 16-byte boundary
+        let aligned_offset = offset & !0xF;
+        // Align end up to 16-byte boundary
+        let aligned_end = ((offset + length + 15) & !0xF).min(self.elf_bytes.len());
 
         HexChunk {
-            content: self.elf_bytes[start..end].to_vec(),
-            offset: start as u64,
+            content: self.elf_bytes[aligned_offset..aligned_end].to_vec(),
+            offset: aligned_offset as u64,
             total_size: self.elf_bytes.len() as u64,
         }
     }
 }
 
 /// A chunk of hex data for the viewer.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct HexChunk {
     /// Raw byte content.
     pub content: Vec<u8>,

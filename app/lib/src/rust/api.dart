@@ -12,6 +12,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Future<BootImageHeader> getBootInfo({required String path}) =>
     RustLib.instance.api.crateApiGetBootInfo(path: path);
 
+/// Analyze a kernel with real-time progress updates.
+Stream<ProgressUpdate> startAnalysis({required String inputPath}) =>
+    RustLib.instance.api.crateApiStartAnalysis(inputPath: inputPath);
+
 /// Detect compression format of a file.
 Future<CompressionFormat> detectCompression({required String path}) =>
     RustLib.instance.api.crateApiDetectCompression(path: path);
@@ -30,6 +34,9 @@ abstract class AnalysisSession implements RustOpaqueInterface {
   Future<BigInt> countFiltered({required String filter});
 
   /// Read a chunk of the kernel for hex viewing.
+  ///
+  /// Alignment: This method aligns the offset and length to 16 bytes
+  /// to simplify UI rendering (one row = 16 bytes).
   Future<HexChunk> getHexChunk({
     required BigInt offset,
     required BigInt length,
@@ -156,6 +163,36 @@ class HexChunk {
           content == other.content &&
           offset == other.offset &&
           totalSize == other.totalSize;
+}
+
+/// Real-time progress update for the analysis pipeline.
+class ProgressUpdate {
+  /// Current analytical step description.
+  final String step;
+
+  /// Progress value from 0.0 to 1.0.
+  final double progress;
+
+  /// The final session object (only set in the last update).
+  final AnalysisSession? session;
+
+  const ProgressUpdate({
+    required this.step,
+    required this.progress,
+    this.session,
+  });
+
+  @override
+  int get hashCode => step.hashCode ^ progress.hashCode ^ session.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProgressUpdate &&
+          runtimeType == other.runtimeType &&
+          step == other.step &&
+          progress == other.progress &&
+          session == other.session;
 }
 
 /// Column to sort by.
