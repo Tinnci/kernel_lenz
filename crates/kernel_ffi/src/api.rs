@@ -19,17 +19,24 @@ pub struct FrbKernelSymbol {
 /// Column to sort by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortColumn {
+    /// Sort by virtual address.
     Address,
+    /// Sort by symbol name.
     Name,
+    /// Sort by symbol type.
     Type,
 }
 
 /// Lightweight summary of the analysis result.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalysisSummary {
+    /// Size of decomrpessed kernel bytes.
     pub kernel_size: usize,
+    /// CPU architecture (e.g., AArch64).
     pub arch: String,
+    /// Base address of the kernel code.
     pub kernel_base: u64,
+    /// Total number of symbols found.
     pub symbol_count: usize,
 }
 
@@ -53,7 +60,9 @@ pub fn get_boot_info(path: String) -> Result<BootImageHeader> {
 #[flutter_rust_bridge::frb(opaque)]
 pub struct AnalysisSession {
     symbols: Vec<FrbKernelSymbol>,
+    /// Summary of the analysis.
     pub summary: AnalysisSummary,
+    /// Underlying uncompressed ELF bytes.
     pub elf_bytes: Vec<u8>,
 }
 
