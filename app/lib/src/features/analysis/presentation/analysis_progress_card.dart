@@ -56,33 +56,37 @@ class AnalysisProgressCard extends StatelessWidget {
                 const SizedBox(width: 16),
 
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isCompleted ? 'Analysis Complete' : 'Kernel Deep Scan',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withAlpha(150),
-                          letterSpacing: 1.2,
+                  child: AnimatedSize(
+                    duration: 300.ms,
+                    curve: Curves.easeInOut,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isCompleted
+                              ? 'Analysis Complete'
+                              : 'Kernel Deep Scan',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withAlpha(150),
+                            letterSpacing: 1.2,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Flexible(
-                        child:
-                            Text(
-                                  step,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'monospace',
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                )
-                                .animate(key: ValueKey(step))
-                                .fadeIn()
-                                .slideX(begin: 0.1, end: 0),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                              step,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                              ),
+                              maxLines: 2,
+                              softWrap: true,
+                              overflow: TextOverflow.visible,
+                            )
+                            .animate(key: ValueKey(step))
+                            .fadeIn()
+                            .slideX(begin: 0.1, end: 0),
+                      ],
+                    ),
                   ),
                 ),
 

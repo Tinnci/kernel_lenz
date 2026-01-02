@@ -369,8 +369,8 @@ class AnalysisDashboard extends ConsumerWidget {
               child: Text(
                 message,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                maxLines: 4, // 2026 UX: Allow more context for errors
+                overflow: TextOverflow.visible, // Let it grow
               ),
             ),
           ],
@@ -397,18 +397,35 @@ class AnalysisDashboard extends ConsumerWidget {
               Icon(icon, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: Theme.of(context).textTheme.labelMedium),
-                    Text(
-                      value,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                child: AnimatedSize(
+                  duration: 300.ms,
+                  curve: Curves.easeInOut,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withAlpha(150),
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'monospace',
+                            ),
+                        softWrap: true,
+                        overflow: TextOverflow.visible,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               if (onTap != null)
