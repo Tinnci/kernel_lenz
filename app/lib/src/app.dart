@@ -9,6 +9,7 @@ import 'package:kernel_lens_app/src/common/widgets/glass_card.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_progress_card.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_controller.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_state.dart';
+import 'package:kernel_lens_app/src/features/analysis/domain/failure_context.dart';
 import 'package:kernel_lens_app/src/rust/api.dart';
 
 class KernelLensApp extends ConsumerWidget {
@@ -92,56 +93,78 @@ class _BackgroundTaskTray extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(analysisControllerProvider);
-    if (state.status != AnalysisStatus.loading) return const SizedBox.shrink();
+    if (state.status == AnalysisStatus.idle ||
+        state.status == AnalysisStatus.success) {
+      return const SizedBox.shrink();
+    }
+
+    final isError = state.status == AnalysisStatus.failure;
 
     return Container(
-      height: 32,
+      height: 36,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withAlpha(200),
+        color: isError
+            ? Theme.of(context).colorScheme.errorContainer.withAlpha(220)
+            : Theme.of(context).colorScheme.primaryContainer.withAlpha(200),
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withAlpha(50),
+            color: isError
+                ? Theme.of(context).colorScheme.error.withAlpha(50)
+                : Theme.of(context).colorScheme.primary.withAlpha(50),
           ),
         ),
       ),
       child:
           Row(
             children: [
-              const SpinKitDoubleBounce(color: Colors.white, size: 12),
+              if (isError)
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.error,
+                )
+              else
+                const SpinKitDoubleBounce(color: Colors.white, size: 12),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Running Deep Analysis: ${state.currentStep ?? 'Starting...'}',
+                  isError
+                      ? 'Analysis Failed: ${state.error?.message ?? 'Unknown'}'
+                      : 'Running Deep Analysis: ${state.currentStep ?? 'Starting...'}',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'monospace',
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    color: isError
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 100,
-                child: LinearProgressIndicator(
-                  value: state.progress,
-                  minHeight: 2,
-                  backgroundColor: Colors.white.withAlpha(50),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).colorScheme.primary,
+              if (!isError) ...[
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 100,
+                  child: LinearProgressIndicator(
+                    value: state.progress,
+                    minHeight: 2,
+                    backgroundColor: Colors.white.withAlpha(50),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '${((state.progress ?? 0) * 100).toInt()}%',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(width: 12),
+                Text(
+                  '${((state.progress ?? 0) * 100).toInt()}%',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
+              ],
             ],
           ).animate().slideY(
             begin: 1.0,
@@ -298,10 +321,7 @@ class AnalysisDashboard extends ConsumerWidget {
                         minWidth: 400,
                         maxWidth: 450,
                       ),
-                      child: _buildErrorCard(
-                        context,
-                        state.error ?? 'Unknown error',
-                      ),
+                      child: _buildErrorCard(context, state.error!),
                     ),
                   if (state.summary != null) ...[
                     ConstrainedBox(
@@ -352,25 +372,64 @@ class AnalysisDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorCard(BuildContext context, String message) {
+  Widget _buildErrorCard(BuildContext context, FailureContext error) {
     return GlassCard(
       opacity: 0.1,
       child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 32,
+            Row(
+              children: [
+                Icon(error.icon, color: error.color, size: 32),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        error.message,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: error.color,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      Text(
+                        'Error Code: ${error.code}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: error.color.withAlpha(150),
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-                maxLines: 4, // 2026 UX: Allow more context for errors
-                overflow: TextOverflow.visible, // Let it grow
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: error.color.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: error.color.withAlpha(50)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.lightbulb_outline, size: 16, color: error.color),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      error.suggestion,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

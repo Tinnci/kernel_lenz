@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:kernel_lens_app/src/features/analysis/domain/failure_context.dart';
 import 'package:kernel_lens_app/src/rust/api.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_state.dart';
@@ -11,59 +13,113 @@ class AnalysisController extends _$AnalysisController {
   AnalysisState build() => const AnalysisState();
 
   Future<void> analyze(String path) async {
+    AppLogger.i('Analysis Request: $path');
+
+    // 1. Boundary Validation: Google FFI Practice
+    if (!File(path).existsSync()) {
+      AppLogger.e('Target file missing: $path');
+      state = state.copyWith(
+        status: AnalysisStatus.failure,
+        error: const FailureContext(
+          code: 'FILE_NOT_FOUND',
+          message: 'Source File Missing',
+          suggestion:
+              'The selected image file no longer exists. Please re-select the file.',
+          severity: FailureSeverity.critical,
+        ),
+      );
+      return;
+    }
+
     state = state.copyWith(
       status: AnalysisStatus.loading,
-      currentStep: 'Initializing...',
+      currentStep: 'Initializing engine...',
       progress: 0.1,
       error: null,
     );
 
     try {
-      AppLogger.i('Starting analysis for: $path');
       final stream = startAnalysis(inputPath: path);
 
-      await for (final update in stream) {
-        AppLogger.d(
-          'FFI Progress: ${update.step} (${(update.progress * 100).toStringAsFixed(1)}%)',
-        );
+      // 2026 Best Practice: Defensive stream listening
+      stream.listen(
+        (update) async {
+          if (update.session != null) {
+            final session = update.session!;
+            final symbols = await session.querySymbols(
+              filter: "",
+              sortBy: SortColumn.address,
+              ascending: true,
+              page: BigInt.zero,
+              pageSize: BigInt.from(100),
+            );
 
-        if (update.session != null) {
-          AppLogger.i('Analysis successful, received session object.');
-          final session = update.session!;
-          // Initial query (first 100 items)
-          final symbols = await session.querySymbols(
-            filter: "",
-            sortBy: SortColumn.address,
-            ascending: true,
-            page: BigInt.zero,
-            pageSize: BigInt.from(100),
-          );
-
+            state = state.copyWith(
+              status: AnalysisStatus.success,
+              currentStep: 'Analysis Complete',
+              progress: 1.0,
+              session: session,
+              summary: session.summary,
+              visibleSymbols: symbols,
+              currentPage: 0,
+              hasMore: symbols.length >= 100,
+            );
+          } else {
+            state = state.copyWith(
+              currentStep: update.step,
+              progress: update.progress,
+              summary: update.summary ?? state.summary,
+            );
+          }
+        },
+        onError: (error, stack) {
+          AppLogger.e('FFI Logic Failure', error, stack);
           state = state.copyWith(
-            status: AnalysisStatus.success,
-            currentStep: 'Analysis complete',
-            progress: 1.0,
-            session: session,
-            summary: session.summary,
-            visibleSymbols: symbols,
-            currentPage: 0,
-            hasMore: symbols.length >= 100,
+            status: AnalysisStatus.failure,
+            error: _mapError(error.toString()),
+            progress: 0.0,
           );
-        } else {
-          state = state.copyWith(
-            currentStep: update.step,
-            progress: update.progress,
-          );
-        }
-      }
+        },
+        onDone: () => AppLogger.d('Analysis stream closed.'),
+        cancelOnError: true,
+      );
     } catch (e, stack) {
-      AppLogger.e('Kernel analysis failed', e, stack);
+      AppLogger.e('FFI Startup Crash', e, stack);
       state = state.copyWith(
         status: AnalysisStatus.failure,
-        error: e.toString(),
-        progress: 0.0,
+        error: _mapError(e.toString()),
       );
     }
+  }
+
+  FailureContext _mapError(String error) {
+    if (error.contains('Kallsyms not found')) {
+      return const FailureContext(
+        code: 'KALLSYMS_NOT_FOUND',
+        message: 'Kernel Symbol Table Not Found',
+        suggestion:
+            'This image might be stripped or encrypted. Try providing a manual base address if you know the kalsyms offset.',
+        severity: FailureSeverity.critical,
+      );
+    }
+
+    if (error.contains('Permission denied')) {
+      return const FailureContext(
+        code: 'PERMISSION_DENIED',
+        message: 'Access Denied',
+        suggestion:
+            'The application lacks permissions to read the source file. Try moving the image to a different directory or running as Administrator.',
+        severity: FailureSeverity.operational,
+      );
+    }
+
+    return FailureContext(
+      code: 'UNKNOWN_FAILURE',
+      message: 'Analysis Failed Unexpectedly',
+      suggestion: 'Check the logs for more details or retry the analysis.',
+      severity: FailureSeverity.technical,
+      metadata: {'raw': error},
+    );
   }
 
   Future<void> loadMore() async {

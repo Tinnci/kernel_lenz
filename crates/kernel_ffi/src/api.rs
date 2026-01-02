@@ -21,6 +21,8 @@ pub struct ProgressUpdate {
     pub step: String,
     /// Progress value from 0.0 to 1.0.
     pub progress: f32,
+    /// Partial analysis metadata (if available).
+    pub summary: Option<AnalysisSummary>,
     /// The final session object (only set in the last update).
     pub session: Option<AnalysisSession>,
 }
@@ -34,6 +36,21 @@ pub enum SortColumn {
     Name,
     /// Sort by symbol type.
     Type,
+}
+
+/// Granular error types for 2026-standard error handling.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum AnalysisError {
+    #[error("File not found at path: {0}")]
+    FileNotFound(String),
+    #[error("Decompression failed: {0}")]
+    DecompressionFailed(String),
+    #[error("Kallsyms not found: Kernel might be stripped or KASLR-active")]
+    KallsymsNotFound,
+    #[error("ELF reconstruction failed: {0}")]
+    ElfBuildError(String),
+    #[error("Unknown internal error: {0}")]
+    Internal(String),
 }
 
 /// Lightweight summary of the analysis result.
@@ -70,6 +87,7 @@ pub fn start_analysis(
     sink.add(ProgressUpdate {
         step: "Reading file...".to_string(),
         progress: 0.05,
+        summary: None,
         session: None,
     })
     .unwrap();
@@ -78,6 +96,7 @@ pub fn start_analysis(
     sink.add(ProgressUpdate {
         step: "Decompressing...".to_string(),
         progress: 0.1,
+        summary: None,
         session: None,
     })
     .unwrap();
@@ -92,6 +111,7 @@ pub fn start_analysis(
     sink.add(ProgressUpdate {
         step: "Scanning symbols... (this may take a few seconds)".to_string(),
         progress: 0.4,
+        summary: None,
         session: None,
     })
     .unwrap();
@@ -99,9 +119,17 @@ pub fn start_analysis(
     let kallsyms = KallsymsFinder::new(&kernel_data)?.into_result();
     tracing::info!("Found {} symbols across kernel", kallsyms.symbol_count);
 
+    let early_summary = AnalysisSummary {
+        kernel_size: kernel_data.len(),
+        arch: format!("{:?}", kallsyms.arch),
+        kernel_base: kallsyms.kernel_base,
+        symbol_count: kallsyms.symbol_count,
+    };
+
     sink.add(ProgressUpdate {
         step: "Found symbols, building ELF metadata...".to_string(),
         progress: 0.7,
+        summary: Some(early_summary.clone()),
         session: None,
     })
     .unwrap();
@@ -112,6 +140,7 @@ pub fn start_analysis(
     sink.add(ProgressUpdate {
         step: "Finalizing...".to_string(),
         progress: 0.9,
+        summary: Some(early_summary.clone()),
         session: None,
     })
     .unwrap();
@@ -139,6 +168,7 @@ pub fn start_analysis(
     sink.add(ProgressUpdate {
         step: "Complete".to_string(),
         progress: 1.0,
+        summary: Some(session.summary.clone()),
         session: Some(session),
     })
     .unwrap();

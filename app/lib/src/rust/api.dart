@@ -173,17 +173,22 @@ class ProgressUpdate {
   /// Progress value from 0.0 to 1.0.
   final double progress;
 
+  /// Partial analysis metadata (if available).
+  final AnalysisSummary? summary;
+
   /// The final session object (only set in the last update).
   final AnalysisSession? session;
 
   const ProgressUpdate({
     required this.step,
     required this.progress,
+    this.summary,
     this.session,
   });
 
   @override
-  int get hashCode => step.hashCode ^ progress.hashCode ^ session.hashCode;
+  int get hashCode =>
+      step.hashCode ^ progress.hashCode ^ summary.hashCode ^ session.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -192,6 +197,7 @@ class ProgressUpdate {
           runtimeType == other.runtimeType &&
           step == other.step &&
           progress == other.progress &&
+          summary == other.summary &&
           session == other.session;
 }
 

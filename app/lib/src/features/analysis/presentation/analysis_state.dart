@@ -1,3 +1,4 @@
+import 'package:kernel_lens_app/src/features/analysis/domain/failure_context.dart';
 import 'package:kernel_lens_app/src/rust/api.dart';
 
 enum AnalysisStatus { idle, loading, success, failure }
@@ -16,7 +17,7 @@ class AnalysisState {
   final SortColumn currentSort;
   final bool ascending;
   final Map<int, HexChunk> hexCache;
-  final String? error;
+  final FailureContext? error;
 
   const AnalysisState({
     this.status = AnalysisStatus.idle,
@@ -49,7 +50,7 @@ class AnalysisState {
     SortColumn? currentSort,
     bool? ascending,
     Map<int, HexChunk>? hexCache,
-    String? error,
+    FailureContext? error,
   }) {
     return AnalysisState(
       status: status ?? this.status,

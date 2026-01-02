@@ -716,6 +716,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnalysisSummary dco_decode_box_autoadd_analysis_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_analysis_summary(raw);
+  }
+
+  @protected
   double dco_decode_f_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as double;
@@ -779,17 +785,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnalysisSummary? dco_decode_opt_box_autoadd_analysis_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_analysis_summary(raw);
+  }
+
+  @protected
   ProgressUpdate dco_decode_progress_update(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return ProgressUpdate(
       step: dco_decode_String(arr[0]),
       progress: dco_decode_f_32(arr[1]),
+      summary: dco_decode_opt_box_autoadd_analysis_summary(arr[2]),
       session:
           dco_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
-            arr[2],
+            arr[3],
           ),
     );
   }
@@ -975,6 +988,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnalysisSummary sse_decode_box_autoadd_analysis_summary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_analysis_summary(deserializer));
+  }
+
+  @protected
   double sse_decode_f_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getFloat32();
@@ -1046,10 +1067,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnalysisSummary? sse_decode_opt_box_autoadd_analysis_summary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_analysis_summary(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   ProgressUpdate sse_decode_progress_update(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_step = sse_decode_String(deserializer);
     var var_progress = sse_decode_f_32(deserializer);
+    var var_summary = sse_decode_opt_box_autoadd_analysis_summary(deserializer);
     var var_session =
         sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
           deserializer,
@@ -1057,6 +1092,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ProgressUpdate(
       step: var_step,
       progress: var_progress,
+      summary: var_summary,
       session: var_session,
     );
   }
@@ -1259,6 +1295,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_analysis_summary(
+    AnalysisSummary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_analysis_summary(self, serializer);
+  }
+
+  @protected
   void sse_encode_f_32(double self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putFloat32(self);
@@ -1329,6 +1374,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_analysis_summary(
+    AnalysisSummary? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_analysis_summary(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_progress_update(
     ProgressUpdate self,
     SseSerializer serializer,
@@ -1336,6 +1394,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.step, serializer);
     sse_encode_f_32(self.progress, serializer);
+    sse_encode_opt_box_autoadd_analysis_summary(self.summary, serializer);
     sse_encode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
       self.session,
       serializer,

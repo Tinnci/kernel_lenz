@@ -785,15 +785,28 @@ impl SseDecode for Option<AnalysisSession> {
     }
 }
 
+impl SseDecode for Option<crate::api::AnalysisSummary> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::AnalysisSummary>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for crate::api::ProgressUpdate {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_step = <String>::sse_decode(deserializer);
         let mut var_progress = <f32>::sse_decode(deserializer);
+        let mut var_summary = <Option<crate::api::AnalysisSummary>>::sse_decode(deserializer);
         let mut var_session = <Option<AnalysisSession>>::sse_decode(deserializer);
         return crate::api::ProgressUpdate {
             step: var_step,
             progress: var_progress,
+            summary: var_summary,
             session: var_session,
         };
     }
@@ -1006,6 +1019,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::ProgressUpdate {
         [
             self.step.into_into_dart().into_dart(),
             self.progress.into_into_dart().into_dart(),
+            self.summary.into_into_dart().into_dart(),
             self.session.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -1191,11 +1205,22 @@ impl SseEncode for Option<AnalysisSession> {
     }
 }
 
+impl SseEncode for Option<crate::api::AnalysisSummary> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::AnalysisSummary>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for crate::api::ProgressUpdate {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.step, serializer);
         <f32>::sse_encode(self.progress, serializer);
+        <Option<crate::api::AnalysisSummary>>::sse_encode(self.summary, serializer);
         <Option<AnalysisSession>>::sse_encode(self.session, serializer);
     }
 }

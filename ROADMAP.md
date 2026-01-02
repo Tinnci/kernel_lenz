@@ -35,6 +35,8 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
 - [x] **FFI V2 Upgrade (2026 Spec)**: 
     - [x] `StreamSink` for real-time progress updates
     - [x] **Zero-Copy**: Rust-side sorting/filtering/pagination
+    - [x] **Defensive State Machine**: `.listen` with `cancelOnError` & FailureContext
+    - [x] **Semantic Diagnostics**: Google-style structured error hints
     - [x] **xtask doctor**: Automated environment validation
     - [x] **Binary Diet**: `cargo-bloat` integrated into `xtask bloat`
 
