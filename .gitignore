@@ -1,0 +1,52 @@
+# ============================================================
+# KernelLens .gitignore
+# ============================================================
+
+# --- Rust ---
+/target/
+**/*.rs.bk
+Cargo.lock
+# Note: Cargo.lock is intentionally tracked for binaries
+# Uncomment above line only for pure libraries
+
+# --- Flutter/Dart ---
+app/.dart_tool/
+app/.packages
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/pubspec.lock
+app/windows/flutter/ephemeral/
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Test Artifacts ---
+*.img
+*.lz4
+*.elf
+!crates/test_utils/fixtures/*.img
+
+# --- Build Artifacts ---
+*.dll
+*.so
+*.dylib
+*.exe
+!target/release/*.exe
+
+# --- Logs ---
+*.log
+*.trace
+
+# --- Secrets ---
+.env
+.env.local

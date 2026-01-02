@@ -1,0 +1,33 @@
+# kernel_ffi - Flutter Bridge Layer
+# Exposes kernel_core to Dart/Flutter via FFI
+
+[package]
+name = "kernel_ffi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "FFI bridge for Flutter GUI"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+kernel_core = { path = "../kernel_core" }
+
+# FFI
+# Note: flutter_rust_bridge version will be configured during Flutter setup
+# flutter_rust_bridge = { workspace = true }
+
+# Serialization for data transfer
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }

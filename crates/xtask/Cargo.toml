@@ -1,0 +1,25 @@
+# xtask - Build Automation Tasks
+# Replaces Makefile/Shell scripts with cross-platform Rust code
+#
+# Usage:
+#   cargo xtask build-cli    # Build CLI tool
+#   cargo xtask build-ffi    # Build FFI library for Flutter
+#   cargo xtask run-app      # Build everything and run Flutter app
+#   cargo xtask test         # Run all tests
+#   cargo xtask clean        # Clean all build artifacts
+
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+publish = false  # Never publish to crates.io
+
+[[bin]]
+name = "xtask"
+path = "src/main.rs"
+
+[dependencies]
+xshell = { workspace = true }
+which = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }

@@ -1,0 +1,38 @@
+# kernel_cli - Command Line Interface
+# The primary user-facing tool for kernel analysis
+
+[package]
+name = "kernel_cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Command-line tool for Linux kernel binary analysis"
+
+[[bin]]
+name = "kernel-lens"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Core library
+kernel_core = { path = "../kernel_core" }
+
+# CLI framework
+clap = { workspace = true }
+indicatif = { workspace = true }
+console = { workspace = true }
+dialoguer = { workspace = true }
+
+# Error handling (application style)
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Serialization (for JSON output)
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -1,0 +1,22 @@
+# test_utils - Shared Testing Utilities
+# Provides common test fixtures, mocks, and helpers
+
+[package]
+name = "test_utils"
+version.workspace = true
+edition.workspace = true
+publish = false  # Internal use only
+
+[dependencies]
+# We expose types for test helpers
+kernel_core = { path = "../kernel_core" }
+
+# Compression for mock data
+lz4_flex = { workspace = true }
+
+# Testing utilities
+tempfile = { workspace = true }
+
+# Serialization for fixture loading
+serde = { workspace = true }
+serde_json = { workspace = true }

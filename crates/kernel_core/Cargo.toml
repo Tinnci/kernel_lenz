@@ -1,0 +1,41 @@
+# kernel_core - Core Analysis Engine
+# This is the heart of KernelLens - pure algorithms, no UI, no CLI
+
+[package]
+name = "kernel_core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core library for Linux kernel binary analysis"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Binary parsing
+nom = { workspace = true }
+byteorder = { workspace = true }
+memmap2 = { workspace = true }
+
+# Compression
+lz4_flex = { workspace = true }
+flate2 = { workspace = true }
+zstd = { workspace = true }
+
+# ELF format
+object = { workspace = true }
+
+# Error handling (library style)
+thiserror = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+
+# Logging
+log = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+tempfile = { workspace = true }

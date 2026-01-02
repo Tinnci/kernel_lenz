@@ -1,0 +1,22 @@
+# KernelLens Code Formatting Configuration
+# Applied to all crates in the workspace
+
+edition = "2021"
+max_width = 100
+tab_spaces = 4
+use_small_heuristics = "Max"
+
+# Imports
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+
+# Comments
+wrap_comments = true
+comment_width = 80
+normalize_comments = true
+
+# Formatting
+newline_style = "Auto"
+use_field_init_shorthand = true
+use_try_shorthand = true

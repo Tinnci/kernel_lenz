@@ -1,0 +1,19 @@
+# .cargo/config.toml - Cargo Configuration
+
+[alias]
+# Shortcut for xtask
+xtask = "run --package xtask --"
+
+# Quick test specific crate
+test-core = "test -p kernel_core"
+test-cli = "test -p kernel_cli"
+
+[build]
+# Let Cargo use default parallelism
+
+[target.x86_64-pc-windows-msvc]
+# Windows-specific linker flags if needed
+# rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.x86_64-pc-windows-gnu]
+# MinGW-specific settings if needed
