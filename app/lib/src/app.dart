@@ -476,7 +476,7 @@ class _SymbolListSheetState extends ConsumerState<SymbolListSheet> {
                         filled: true,
                         fillColor: Theme.of(
                           context,
-                        ).colorScheme.surfaceVariant.withAlpha(100),
+                        ).colorScheme.surfaceContainerHighest.withAlpha(100),
                       ),
                     ),
                   ],
