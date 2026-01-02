@@ -241,7 +241,7 @@ fn find_markers(
             };
 
             // Align
-            if pos % element_size != 0 {
+            if !pos.is_multiple_of(element_size) {
                 // Not a great candidate if not aligned
                 if pos > 0 {
                     pos -= 1;
@@ -358,12 +358,10 @@ fn find_num_symbols(data: &[u8], names_offset: usize, big_endian: bool) -> Resul
             } else {
                 data.pread_with::<u32>(pos, BE).unwrap_or(0) as u64
             }
+        } else if size == 8 {
+            data.pread_with::<u64>(pos, LE).unwrap_or(0)
         } else {
-            if size == 8 {
-                data.pread_with::<u64>(pos, LE).unwrap_or(0)
-            } else {
-                data.pread_with::<u32>(pos, LE).unwrap_or(0) as u64
-            }
+            data.pread_with::<u32>(pos, LE).unwrap_or(0) as u64
         };
 
         // Heuristic: symbol count is usually 10k - 200k
@@ -399,12 +397,10 @@ fn find_addresses_table(
             } else {
                 data.pread_with::<u32>(table_start, BE).unwrap_or(0) as u64
             }
+        } else if ptr_size == 8 {
+            data.pread_with::<u64>(table_start, LE).unwrap_or(0)
         } else {
-            if ptr_size == 8 {
-                data.pread_with::<u64>(table_start, LE).unwrap_or(0)
-            } else {
-                data.pread_with::<u32>(table_start, LE).unwrap_or(0) as u64
-            }
+            data.pread_with::<u32>(table_start, LE).unwrap_or(0) as u64
         };
 
         // Heuristic: kernel address
