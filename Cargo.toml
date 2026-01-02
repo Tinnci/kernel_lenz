@@ -90,13 +90,17 @@ unsafe_code = "warn"
 missing_docs = "warn"
 
 [workspace.lints.clippy]
-all = "warn"
-pedantic = "warn"
-nursery = "warn"
-# Allow some pedantic lints that are too noisy
+# Core safety lints - these we always want
+all = { level = "warn", priority = -1 }
+# Pedantic is too strict for rapid development - disable for now
+# pedantic = { level = "warn", priority = -1 }
+# nursery = { level = "warn", priority = -1 }
+
+# Explicit allows for common patterns in this codebase
 module_name_repetitions = "allow"
 must_use_candidate = "allow"
 missing_errors_doc = "allow"
+missing_panics_doc = "allow"
 
 # ============================================================
 # Release Profile Optimizations

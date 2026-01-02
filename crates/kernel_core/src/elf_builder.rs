@@ -95,7 +95,7 @@ impl<'a> ElfBuilder<'a> {
             if sym.sym_type.is_global() { SymbolScope::Dynamic } else { SymbolScope::Compilation };
 
         // Calculate offset within section
-        let offset = sym.address.saturating_sub(self.symbols.kernel_base) as u64;
+        let offset = sym.address.saturating_sub(self.symbols.kernel_base);
 
         obj.add_symbol(Symbol {
             name: sym.name.as_bytes().to_vec(),

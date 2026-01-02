@@ -186,7 +186,7 @@ impl BootImage {
         // Calculate offsets based on page alignment
         let page_size = header.page_size as usize;
         let kernel_offset = page_size; // Kernel starts after header page
-        let kernel_pages = (header.kernel_size as usize + page_size - 1) / page_size;
+        let kernel_pages = (header.kernel_size as usize).div_ceil(page_size);
         let ramdisk_offset = kernel_offset + kernel_pages * page_size;
 
         Ok(BootImageHeader {

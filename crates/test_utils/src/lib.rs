@@ -23,8 +23,8 @@ pub fn create_mock_boot_image(kernel_size: u32, ramdisk_size: u32) -> Vec<u8> {
 
     // Calculate total size
     let header_pages = 1;
-    let kernel_pages = (kernel_size + page_size - 1) / page_size;
-    let ramdisk_pages = (ramdisk_size + page_size - 1) / page_size;
+    let kernel_pages = kernel_size.div_ceil(page_size);
+    let ramdisk_pages = ramdisk_size.div_ceil(page_size);
     let total_size = (header_pages + kernel_pages + ramdisk_pages) as usize * page_size as usize;
 
     let mut data = vec![0u8; total_size];

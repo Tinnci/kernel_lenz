@@ -31,7 +31,7 @@ pub fn detect_architecture(data: &[u8]) -> KernelArch {
     }
 
     // x86_64 bzImage magic 0x55AA at 0x1FE
-    if data.len() > 0x200 && &data[0x1FE..0x200] == &[0x55, 0xAA] {
+    if data.len() > 0x200 && data[0x1FE..0x200] == [0x55, 0xAA] {
         return KernelArch::X86_64;
     }
 
