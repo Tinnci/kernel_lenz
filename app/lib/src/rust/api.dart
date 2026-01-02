@@ -55,9 +55,16 @@ abstract class CompressionFormat implements RustOpaqueInterface {}
 
 /// Lightweight summary of the analysis result.
 class AnalysisSummary {
+  /// Size of decomrpessed kernel bytes.
   final BigInt kernelSize;
+
+  /// CPU architecture (e.g., AArch64).
   final String arch;
+
+  /// Base address of the kernel code.
   final BigInt kernelBase;
+
+  /// Total number of symbols found.
   final BigInt symbolCount;
 
   const AnalysisSummary({
@@ -116,4 +123,13 @@ class FrbKernelSymbol {
 }
 
 /// Column to sort by.
-enum SortColumn { address, name, type }
+enum SortColumn {
+  /// Sort by virtual address.
+  address,
+
+  /// Sort by symbol name.
+  name,
+
+  /// Sort by symbol type.
+  type,
+}

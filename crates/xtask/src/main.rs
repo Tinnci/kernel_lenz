@@ -147,7 +147,7 @@ fn run_doctor(sh: &Shell) -> Result<()> {
 
     if cfg!(windows) {
         // precise fix for Windows where flutter is a .bat
-        tools[1].0 = "flutter.bat"; 
+        tools[1].0 = "flutter.bat";
     }
 
     let mut all_ok = true;
@@ -158,12 +158,12 @@ fn run_doctor(sh: &Shell) -> Result<()> {
             Ok(version) => {
                 let v = version.lines().next().unwrap_or("unknown");
                 println!("✅ {}", v);
-            }
+            },
             Err(_) => {
                 println!("❌ Not found");
                 println!("   👉 Please install via: {}", install_hint);
                 all_ok = false;
-            }
+            },
         }
     }
 
@@ -173,7 +173,7 @@ fn run_doctor(sh: &Shell) -> Result<()> {
     } else {
         println!("⚠️  Some tools are missing. Please fix the issues above.");
     }
-    
+
     Ok(())
 }
 
@@ -408,14 +408,15 @@ fn run_codegen(sh: &Shell) -> Result<()> {
 fn verify_paths(_sh: &Shell) -> Result<()> {
     println!("🔍 Verifying build paths...");
     let root = project_root()?;
-    
+
     // 1. Check Windows CMake
     let cmake_path = root.join("app/rust_builder/windows/CMakeLists.txt");
     let content = std::fs::read_to_string(&cmake_path)?;
     if !content.contains("crates/kernel_ffi") || !content.contains("kernel_ffi") {
         println!("⚠️  Windows CMakeLists.txt path incorrect. Fixing...");
-        let new_content = content.replace("../../rust", "../../../crates/kernel_ffi")
-                                 .replace("rust_lib_kernel_lens_app", "kernel_ffi");
+        let new_content = content
+            .replace("../../rust", "../../../crates/kernel_ffi")
+            .replace("rust_lib_kernel_lens_app", "kernel_ffi");
         std::fs::write(&cmake_path, new_content)?;
     }
 
@@ -423,10 +424,11 @@ fn verify_paths(_sh: &Shell) -> Result<()> {
     let gradle_path = root.join("app/rust_builder/android/build.gradle");
     let content = std::fs::read_to_string(&gradle_path)?;
     if !content.contains("crates/kernel_ffi") {
-         println!("⚠️  Android build.gradle path incorrect. Fixing...");
-         let new_content = content.replace("manifestDir = \"../../rust\"", "manifestDir = \"../../../crates/kernel_ffi\"")
-                                  .replace("libname = \"rust_lib_kernel_lens_app\"", "libname = \"kernel_ffi\"");
-         std::fs::write(&gradle_path, new_content)?;
+        println!("⚠️  Android build.gradle path incorrect. Fixing...");
+        let new_content = content
+            .replace("manifestDir = \"../../rust\"", "manifestDir = \"../../../crates/kernel_ffi\"")
+            .replace("libname = \"rust_lib_kernel_lens_app\"", "libname = \"kernel_ffi\"");
+        std::fs::write(&gradle_path, new_content)?;
     }
 
     println!("✅ Build paths verified");

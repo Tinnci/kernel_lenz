@@ -82,7 +82,8 @@ impl AnalysisSession {
         let kallsyms = KallsymsFinder::new(&kernel_data)?.into_result();
         let elf_bytes = ElfBuilder::new(&kernel_data, &kallsyms).build()?;
 
-        let symbols: Vec<FrbKernelSymbol> = kallsyms.symbols
+        let symbols: Vec<FrbKernelSymbol> = kallsyms
+            .symbols
             .into_iter()
             .map(|s| FrbKernelSymbol {
                 addr: s.address,
@@ -113,16 +114,14 @@ impl AnalysisSession {
         sort_by: SortColumn,
         ascending: bool,
         page: usize,
-        page_size: usize
+        page_size: usize,
     ) -> Vec<FrbKernelSymbol> {
         // 1. Filter
         let mut filtered: Vec<&FrbKernelSymbol> = if filter.is_empty() {
             self.symbols.iter().collect()
         } else {
             let lower_filter = filter.to_lowercase();
-            self.symbols.iter()
-                .filter(|s| s.name.to_lowercase().contains(&lower_filter))
-                .collect()
+            self.symbols.iter().filter(|s| s.name.to_lowercase().contains(&lower_filter)).collect()
         };
 
         // 2. Sort
@@ -132,7 +131,11 @@ impl AnalysisSession {
                 SortColumn::Name => a.name.cmp(&b.name),
                 SortColumn::Type => a.stype.cmp(&b.stype),
             };
-            if ascending { cmp } else { cmp.reverse() }
+            if ascending {
+                cmp
+            } else {
+                cmp.reverse()
+            }
         });
 
         // 3. Paginate
@@ -152,9 +155,7 @@ impl AnalysisSession {
             self.symbols.len()
         } else {
             let lower_filter = filter.to_lowercase();
-            self.symbols.iter()
-                .filter(|s| s.name.to_lowercase().contains(&lower_filter))
-                .count()
+            self.symbols.iter().filter(|s| s.name.to_lowercase().contains(&lower_filter)).count()
         }
     }
 }
