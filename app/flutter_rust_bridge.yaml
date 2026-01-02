@@ -1,0 +1,4 @@
+rust_input: "crate::api"
+rust_root: "../crates/kernel_ffi"
+dart_output: "lib/src/rust"
+dart_root: "."
