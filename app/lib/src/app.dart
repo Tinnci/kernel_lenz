@@ -204,9 +204,10 @@ class AnalysisDashboard extends ConsumerWidget {
                       child: _buildResultCard(
                         context,
                         'Symbols Found',
-                        '${state.result?.symbolCount ?? 0}',
+                        '${state.summary?.symbolCount ?? 0}',
                         Icons.tag,
-                        onTap: () => _showSymbols(context, state.result!),
+                        onTap: () =>
+                            _showSymbols(context, state.visibleSymbols ?? []),
                       ),
                     ),
                     SizedBox(
@@ -215,7 +216,7 @@ class AnalysisDashboard extends ConsumerWidget {
                       child: _buildResultCard(
                         context,
                         'Arch',
-                        '${state.result?.arch}',
+                        '${state.summary?.arch}',
                         Icons.settings_applications,
                       ),
                     ),
@@ -229,7 +230,7 @@ class AnalysisDashboard extends ConsumerWidget {
     );
   }
 
-  void _showSymbols(BuildContext context, AnalysisResult result) {
+  void _showSymbols(BuildContext context, List<FrbKernelSymbol> symbols) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -256,7 +257,7 @@ class AnalysisDashboard extends ConsumerWidget {
                 child: Row(
                   children: [
                     Text(
-                      'Recovered Symbols',
+                      'Recovered Symbols (First 100)',
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
@@ -272,9 +273,9 @@ class AnalysisDashboard extends ConsumerWidget {
                 child: ListView.builder(
                   controller: scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: result.symbols.length,
+                  itemCount: symbols.length,
                   itemBuilder: (context, index) {
-                    final sym = result.symbols[index];
+                    final sym = symbols[index];
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Theme.of(

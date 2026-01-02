@@ -66,7 +66,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 1851872102;
+  int get rustContentHash => 431532127;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -77,13 +77,56 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<AnalysisResult> crateApiAnalyzeKernel({required String inputPath});
+  Uint8List crateApiAnalysisSessionAutoAccessorGetElfBytes({
+    required AnalysisSession that,
+  });
+
+  AnalysisSummary crateApiAnalysisSessionAutoAccessorGetSummary({
+    required AnalysisSession that,
+  });
+
+  void crateApiAnalysisSessionAutoAccessorSetElfBytes({
+    required AnalysisSession that,
+    required Uint8List elfBytes,
+  });
+
+  void crateApiAnalysisSessionAutoAccessorSetSummary({
+    required AnalysisSession that,
+    required AnalysisSummary summary,
+  });
+
+  Future<BigInt> crateApiAnalysisSessionCountFiltered({
+    required AnalysisSession that,
+    required String filter,
+  });
+
+  Future<AnalysisSession> crateApiAnalysisSessionNew({
+    required String inputPath,
+  });
+
+  Future<List<FrbKernelSymbol>> crateApiAnalysisSessionQuerySymbols({
+    required AnalysisSession that,
+    required String filter,
+    required SortColumn sortBy,
+    required bool ascending,
+    required BigInt page,
+    required BigInt pageSize,
+  });
 
   Future<CompressionFormat> crateApiDetectCompression({required String path});
 
   Future<BootImageHeader> crateApiGetBootInfo({required String path});
 
   Future<void> crateApiInitApp();
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_AnalysisSession;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_AnalysisSession;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_AnalysisSessionPtr;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_BootImageHeader;
@@ -113,7 +156,175 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Future<AnalysisResult> crateApiAnalyzeKernel({required String inputPath}) {
+  Uint8List crateApiAnalysisSessionAutoAccessorGetElfBytes({
+    required AnalysisSession that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_prim_u_8_strict,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAnalysisSessionAutoAccessorGetElfBytesConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAnalysisSessionAutoAccessorGetElfBytesConstMeta =>
+      const TaskConstMeta(
+        debugName: "AnalysisSession_auto_accessor_get_elf_bytes",
+        argNames: ["that"],
+      );
+
+  @override
+  AnalysisSummary crateApiAnalysisSessionAutoAccessorGetSummary({
+    required AnalysisSession that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_analysis_summary,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAnalysisSessionAutoAccessorGetSummaryConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAnalysisSessionAutoAccessorGetSummaryConstMeta =>
+      const TaskConstMeta(
+        debugName: "AnalysisSession_auto_accessor_get_summary",
+        argNames: ["that"],
+      );
+
+  @override
+  void crateApiAnalysisSessionAutoAccessorSetElfBytes({
+    required AnalysisSession that,
+    required Uint8List elfBytes,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+            that,
+            serializer,
+          );
+          sse_encode_list_prim_u_8_strict(elfBytes, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAnalysisSessionAutoAccessorSetElfBytesConstMeta,
+        argValues: [that, elfBytes],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAnalysisSessionAutoAccessorSetElfBytesConstMeta =>
+      const TaskConstMeta(
+        debugName: "AnalysisSession_auto_accessor_set_elf_bytes",
+        argNames: ["that", "elfBytes"],
+      );
+
+  @override
+  void crateApiAnalysisSessionAutoAccessorSetSummary({
+    required AnalysisSession that,
+    required AnalysisSummary summary,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+            that,
+            serializer,
+          );
+          sse_encode_analysis_summary(summary, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAnalysisSessionAutoAccessorSetSummaryConstMeta,
+        argValues: [that, summary],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAnalysisSessionAutoAccessorSetSummaryConstMeta =>
+      const TaskConstMeta(
+        debugName: "AnalysisSession_auto_accessor_set_summary",
+        argNames: ["that", "summary"],
+      );
+
+  @override
+  Future<BigInt> crateApiAnalysisSessionCountFiltered({
+    required AnalysisSession that,
+    required String filter,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+            that,
+            serializer,
+          );
+          sse_encode_String(filter, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_usize,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAnalysisSessionCountFilteredConstMeta,
+        argValues: [that, filter],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAnalysisSessionCountFilteredConstMeta =>
+      const TaskConstMeta(
+        debugName: "AnalysisSession_count_filtered",
+        argNames: ["that", "filter"],
+      );
+
+  @override
+  Future<AnalysisSession> crateApiAnalysisSessionNew({
+    required String inputPath,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -122,23 +333,72 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 6,
             port: port_,
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_analysis_result,
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiAnalyzeKernelConstMeta,
+        constMeta: kCrateApiAnalysisSessionNewConstMeta,
         argValues: [inputPath],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiAnalyzeKernelConstMeta =>
-      const TaskConstMeta(debugName: "analyze_kernel", argNames: ["inputPath"]);
+  TaskConstMeta get kCrateApiAnalysisSessionNewConstMeta => const TaskConstMeta(
+    debugName: "AnalysisSession_new",
+    argNames: ["inputPath"],
+  );
+
+  @override
+  Future<List<FrbKernelSymbol>> crateApiAnalysisSessionQuerySymbols({
+    required AnalysisSession that,
+    required String filter,
+    required SortColumn sortBy,
+    required bool ascending,
+    required BigInt page,
+    required BigInt pageSize,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+            that,
+            serializer,
+          );
+          sse_encode_String(filter, serializer);
+          sse_encode_sort_column(sortBy, serializer);
+          sse_encode_bool(ascending, serializer);
+          sse_encode_usize(page, serializer);
+          sse_encode_usize(pageSize, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_frb_kernel_symbol,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAnalysisSessionQuerySymbolsConstMeta,
+        argValues: [that, filter, sortBy, ascending, page, pageSize],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAnalysisSessionQuerySymbolsConstMeta =>
+      const TaskConstMeta(
+        debugName: "AnalysisSession_query_symbols",
+        argNames: ["that", "filter", "sortBy", "ascending", "page", "pageSize"],
+      );
 
   @override
   Future<CompressionFormat> crateApiDetectCompression({required String path}) {
@@ -150,7 +410,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 8,
             port: port_,
           );
         },
@@ -179,7 +439,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 9,
             port: port_,
           );
         },
@@ -207,7 +467,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 10,
             port: port_,
           );
         },
@@ -224,6 +484,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_AnalysisSession => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_AnalysisSession => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_BootImageHeader => wire
@@ -248,6 +516,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnalysisSession
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AnalysisSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
   BootImageHeader
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBootImageHeader(
     dynamic raw,
@@ -263,6 +540,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return CompressionFormatImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  AnalysisSession
+  dco_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AnalysisSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  AnalysisSession
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AnalysisSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  AnalysisSession
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AnalysisSessionImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -290,19 +594,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  AnalysisResult dco_decode_analysis_result(dynamic raw) {
+  AnalysisSummary dco_decode_analysis_summary(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
-    return AnalysisResult(
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return AnalysisSummary(
       kernelSize: dco_decode_usize(arr[0]),
       arch: dco_decode_String(arr[1]),
       kernelBase: dco_decode_u_64(arr[2]),
       symbolCount: dco_decode_usize(arr[3]),
-      symbols: dco_decode_list_frb_kernel_symbol(arr[4]),
-      elfBytes: dco_decode_list_prim_u_8_strict(arr[5]),
     );
+  }
+
+  @protected
+  bool dco_decode_bool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as bool;
   }
 
   @protected
@@ -319,6 +627,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  int dco_decode_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
   List<FrbKernelSymbol> dco_decode_list_frb_kernel_symbol(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_frb_kernel_symbol).toList();
@@ -328,6 +642,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  SortColumn dco_decode_sort_column(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SortColumn.values[raw as int];
   }
 
   @protected
@@ -362,6 +682,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AnalysisSession
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return AnalysisSessionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   BootImageHeader
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBootImageHeader(
     SseDeserializer deserializer,
@@ -380,6 +712,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return CompressionFormatImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  AnalysisSession
+  sse_decode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return AnalysisSessionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  AnalysisSession
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return AnalysisSessionImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  AnalysisSession
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return AnalysisSessionImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -417,22 +785,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  AnalysisResult sse_decode_analysis_result(SseDeserializer deserializer) {
+  AnalysisSummary sse_decode_analysis_summary(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_kernelSize = sse_decode_usize(deserializer);
     var var_arch = sse_decode_String(deserializer);
     var var_kernelBase = sse_decode_u_64(deserializer);
     var var_symbolCount = sse_decode_usize(deserializer);
-    var var_symbols = sse_decode_list_frb_kernel_symbol(deserializer);
-    var var_elfBytes = sse_decode_list_prim_u_8_strict(deserializer);
-    return AnalysisResult(
+    return AnalysisSummary(
       kernelSize: var_kernelSize,
       arch: var_arch,
       kernelBase: var_kernelBase,
       symbolCount: var_symbolCount,
-      symbols: var_symbols,
-      elfBytes: var_elfBytes,
     );
+  }
+
+  @protected
+  bool sse_decode_bool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint8() != 0;
   }
 
   @protected
@@ -442,6 +812,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_stype = sse_decode_String(deserializer);
     return FrbKernelSymbol(addr: var_addr, name: var_name, stype: var_stype);
+  }
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getInt32();
   }
 
   @protected
@@ -463,6 +839,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  SortColumn sse_decode_sort_column(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return SortColumn.values[inner];
   }
 
   @protected
@@ -489,24 +872,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
-  }
-
-  @protected
-  bool sse_decode_bool(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getUint8() != 0;
-  }
-
-  @protected
   void sse_encode_AnyhowException(
     AnyhowException self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    AnalysisSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as AnalysisSessionImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
   }
 
   @protected
@@ -531,6 +915,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as CompressionFormatImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    AnalysisSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as AnalysisSessionImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    AnalysisSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as AnalysisSessionImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+    AnalysisSession self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as AnalysisSessionImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -568,8 +991,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_analysis_result(
-    AnalysisResult self,
+  void sse_encode_analysis_summary(
+    AnalysisSummary self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -577,8 +1000,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.arch, serializer);
     sse_encode_u_64(self.kernelBase, serializer);
     sse_encode_usize(self.symbolCount, serializer);
-    sse_encode_list_frb_kernel_symbol(self.symbols, serializer);
-    sse_encode_list_prim_u_8_strict(self.elfBytes, serializer);
+  }
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint8(self ? 1 : 0);
   }
 
   @protected
@@ -590,6 +1017,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.addr, serializer);
     sse_encode_String(self.name, serializer);
     sse_encode_String(self.stype, serializer);
+  }
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putInt32(self);
   }
 
   @protected
@@ -615,6 +1048,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_sort_column(SortColumn self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putBigUint64(self);
@@ -636,18 +1075,67 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putBigUint64(self);
   }
+}
 
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
-  }
+@sealed
+class AnalysisSessionImpl extends RustOpaque implements AnalysisSession {
+  // Not to be used by end users
+  AnalysisSessionImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
 
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putUint8(self ? 1 : 0);
-  }
+  // Not to be used by end users
+  AnalysisSessionImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount:
+        RustLib.instance.api.rust_arc_increment_strong_count_AnalysisSession,
+    rustArcDecrementStrongCount:
+        RustLib.instance.api.rust_arc_decrement_strong_count_AnalysisSession,
+    rustArcDecrementStrongCountPtr:
+        RustLib.instance.api.rust_arc_decrement_strong_count_AnalysisSessionPtr,
+  );
+
+  Uint8List get elfBytes => RustLib.instance.api
+      .crateApiAnalysisSessionAutoAccessorGetElfBytes(that: this);
+
+  AnalysisSummary get summary => RustLib.instance.api
+      .crateApiAnalysisSessionAutoAccessorGetSummary(that: this);
+
+  set elfBytes(Uint8List elfBytes) =>
+      RustLib.instance.api.crateApiAnalysisSessionAutoAccessorSetElfBytes(
+        that: this,
+        elfBytes: elfBytes,
+      );
+
+  set summary(AnalysisSummary summary) =>
+      RustLib.instance.api.crateApiAnalysisSessionAutoAccessorSetSummary(
+        that: this,
+        summary: summary,
+      );
+
+  /// Get the total count of symbols after filtering (for pagination).
+  Future<BigInt> countFiltered({required String filter}) => RustLib.instance.api
+      .crateApiAnalysisSessionCountFiltered(that: this, filter: filter);
+
+  /// Query symbols using server-side filtering and sorting.
+  ///
+  /// This is a "Zero-Copy" operation effectively, as we only return
+  /// the small subset of data requested by the UI view.
+  Future<List<FrbKernelSymbol>> querySymbols({
+    required String filter,
+    required SortColumn sortBy,
+    required bool ascending,
+    required BigInt page,
+    required BigInt pageSize,
+  }) => RustLib.instance.api.crateApiAnalysisSessionQuerySymbols(
+    that: this,
+    filter: filter,
+    sortBy: sortBy,
+    ascending: ascending,
+    page: page,
+    pageSize: pageSize,
+  );
 }
 
 @sealed

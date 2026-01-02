@@ -6,14 +6,18 @@ class AnalysisState {
   final AnalysisStatus status;
   final String? currentStep;
   final double? progress;
-  final AnalysisResult? result;
+  final AnalysisSession? session;
+  final AnalysisSummary? summary;
+  final List<FrbKernelSymbol>? visibleSymbols;
   final String? error;
 
   const AnalysisState({
     this.status = AnalysisStatus.idle,
     this.currentStep,
     this.progress,
-    this.result,
+    this.session,
+    this.summary,
+    this.visibleSymbols,
     this.error,
   });
 
@@ -21,14 +25,18 @@ class AnalysisState {
     AnalysisStatus? status,
     String? currentStep,
     double? progress,
-    AnalysisResult? result,
+    AnalysisSession? session,
+    AnalysisSummary? summary,
+    List<FrbKernelSymbol>? visibleSymbols,
     String? error,
   }) {
     return AnalysisState(
       status: status ?? this.status,
       currentStep: currentStep ?? this.currentStep,
       progress: progress ?? this.progress,
-      result: result ?? this.result,
+      session: session ?? this.session,
+      summary: summary ?? this.summary,
+      visibleSymbols: visibleSymbols ?? this.visibleSymbols,
       error: error ?? this.error,
     );
   }

@@ -392,6 +392,9 @@ fn integrate_bridge(sh: &Shell) -> Result<()> {
 fn run_codegen(sh: &Shell) -> Result<()> {
     println!("⚙️  Generating Rust-Dart bindings...");
 
+    let app_dir = project_root()?.join("app");
+    sh.change_dir(&app_dir);
+
     // In FRB V2, codegen is often automatic, but we provide this for manual sync
     cmd!(sh, "flutter_rust_bridge_codegen generate").run()?;
 

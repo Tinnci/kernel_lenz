@@ -6,19 +6,46 @@
 import 'package:kernel_lens_app/src/rust/frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`
 
 /// Analyze a boot image file and return header information.
 Future<BootImageHeader> getBootInfo({required String path}) =>
     RustLib.instance.api.crateApiGetBootInfo(path: path);
 
-/// Full analysis pipeline: parse -> decompress -> analyze -> build ELF.
-Future<AnalysisResult> analyzeKernel({required String inputPath}) =>
-    RustLib.instance.api.crateApiAnalyzeKernel(inputPath: inputPath);
-
 /// Detect compression format of a file.
 Future<CompressionFormat> detectCompression({required String path}) =>
     RustLib.instance.api.crateApiDetectCompression(path: path);
+
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<AnalysisSession>>
+abstract class AnalysisSession implements RustOpaqueInterface {
+  Uint8List get elfBytes;
+
+  AnalysisSummary get summary;
+
+  set elfBytes(Uint8List elfBytes);
+
+  set summary(AnalysisSummary summary);
+
+  /// Get the total count of symbols after filtering (for pagination).
+  Future<BigInt> countFiltered({required String filter});
+
+  // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
+  /// Start a new analysis session.
+  static Future<AnalysisSession> newInstance({required String inputPath}) =>
+      RustLib.instance.api.crateApiAnalysisSessionNew(inputPath: inputPath);
+
+  /// Query symbols using server-side filtering and sorting.
+  ///
+  /// This is a "Zero-Copy" operation effectively, as we only return
+  /// the small subset of data requested by the UI view.
+  Future<List<FrbKernelSymbol>> querySymbols({
+    required String filter,
+    required SortColumn sortBy,
+    required bool ascending,
+    required BigInt page,
+    required BigInt pageSize,
+  });
+}
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BootImageHeader>>
 abstract class BootImageHeader implements RustOpaqueInterface {}
@@ -26,33 +53,18 @@ abstract class BootImageHeader implements RustOpaqueInterface {}
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CompressionFormat>>
 abstract class CompressionFormat implements RustOpaqueInterface {}
 
-/// Complete analysis result for Flutter.
-class AnalysisResult {
-  /// Size of decompressed kernel.
+/// Lightweight summary of the analysis result.
+class AnalysisSummary {
   final BigInt kernelSize;
-
-  /// Detected architecture.
   final String arch;
-
-  /// Kernel base address.
   final BigInt kernelBase;
-
-  /// Number of recovered symbols.
   final BigInt symbolCount;
 
-  /// All recovered symbols.
-  final List<FrbKernelSymbol> symbols;
-
-  /// Generated ELF file bytes.
-  final Uint8List elfBytes;
-
-  const AnalysisResult({
+  const AnalysisSummary({
     required this.kernelSize,
     required this.arch,
     required this.kernelBase,
     required this.symbolCount,
-    required this.symbols,
-    required this.elfBytes,
   });
 
   @override
@@ -60,27 +72,28 @@ class AnalysisResult {
       kernelSize.hashCode ^
       arch.hashCode ^
       kernelBase.hashCode ^
-      symbolCount.hashCode ^
-      symbols.hashCode ^
-      elfBytes.hashCode;
+      symbolCount.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is AnalysisResult &&
+      other is AnalysisSummary &&
           runtimeType == other.runtimeType &&
           kernelSize == other.kernelSize &&
           arch == other.arch &&
           kernelBase == other.kernelBase &&
-          symbolCount == other.symbolCount &&
-          symbols == other.symbols &&
-          elfBytes == other.elfBytes;
+          symbolCount == other.symbolCount;
 }
 
 /// A Flutter-friendly version of KernelSymbol.
 class FrbKernelSymbol {
+  /// Symbol virtual address.
   final BigInt addr;
+
+  /// Symbol name.
   final String name;
+
+  /// Symbol type string (e.g., "T", "t", "D").
   final String stype;
 
   const FrbKernelSymbol({
@@ -101,3 +114,6 @@ class FrbKernelSymbol {
           name == other.name &&
           stype == other.stype;
 }
+
+/// Column to sort by.
+enum SortColumn { address, name, type }

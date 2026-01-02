@@ -23,17 +23,31 @@ class AnalysisController extends _$AnalysisController {
       await detectCompression(path: path);
 
       // Step 2: Full analysis
+
+      // Step 2: Create analysis session
       state = state.copyWith(
         currentStep: 'Processing kernel...',
         progress: 0.5,
       );
-      final result = await analyzeKernel(inputPath: path);
+
+      final session = await AnalysisSession.newInstance(inputPath: path);
+
+      // Initial query (first 100 items)
+      final symbols = await session.querySymbols(
+        filter: "",
+        sortBy: SortColumn.address,
+        ascending: true,
+        page: BigInt.zero,
+        pageSize: BigInt.from(100),
+      );
 
       state = state.copyWith(
         status: AnalysisStatus.success,
         currentStep: 'Analysis complete',
         progress: 1.0,
-        result: result,
+        session: session,
+        summary: session.summary,
+        visibleSymbols: symbols,
       );
     } catch (e) {
       state = state.copyWith(
