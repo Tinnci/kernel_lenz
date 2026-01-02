@@ -1,0 +1,80 @@
+# =============================================================================
+# .gitattributes - Cross-platform line ending normalization (2026 Standard)
+# =============================================================================
+
+# 1. Default: auto-detect text files and normalize to LF in repo
+* text=auto
+
+# =============================================================================
+# Source Code (force LF for consistent hashing across platforms)
+# =============================================================================
+
+# Rust
+*.rs text eol=lf
+*.toml text eol=lf
+
+# Dart / Flutter
+*.dart text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Native Platform (Flutter plugin registration - most sensitive)
+*.cc text eol=lf
+*.cpp text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.swift text eol=lf
+*.kt text eol=lf
+*.java text eol=lf
+
+# Build Scripts
+*.cmake text eol=lf
+*.gradle text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+Makefile text eol=lf
+
+# Web
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# =============================================================================
+# Binary Files (no conversion)
+# =============================================================================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.rar binary
+*.7z binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.a binary
+
+# =============================================================================
+# Generated Files (treat as binary to prevent merge conflicts)
+# =============================================================================
+*.lock text eol=lf
+Cargo.lock text eol=lf
+pubspec.lock text eol=lf
