@@ -80,6 +80,12 @@ enum Commands {
     /// Initialize Flutter project (first-time setup)
     InitFlutter,
 
+    /// Integrate flutter_rust_bridge into the Flutter app
+    IntegrateBridge,
+
+    /// Generate Rust-Dart bindings
+    Codegen,
+
     /// Run fuzz tests (requires nightly and cargo-fuzz)
     Fuzz {
         /// Target to fuzz (kallsyms_scanner, kallsyms_decoder, boot_image, decompressor)
@@ -114,6 +120,8 @@ fn main() -> Result<()> {
         Commands::Clean => clean(&sh),
         Commands::Doc { open } => build_doc(&sh, open),
         Commands::InitFlutter => init_flutter(&sh),
+        Commands::IntegrateBridge => integrate_bridge(&sh),
+        Commands::Codegen => run_codegen(&sh),
         Commands::Fuzz { target, max_time } => run_fuzz(&sh, &target, max_time),
     }
 }
@@ -315,5 +323,31 @@ fn run_fuzz(sh: &Shell, target: &str, max_time: u32) -> Result<()> {
     cmd!(sh, "cargo +nightly fuzz run {target_name} -- -max_total_time={max_time_str}").run()?;
 
     println!("✅ Fuzz test completed");
+    Ok(())
+}
+
+fn integrate_bridge(sh: &Shell) -> Result<()> {
+    println!("🔗 Integrating flutter_rust_bridge...");
+
+    // Ensure codegen is installed
+    if cmd!(sh, "flutter_rust_bridge_codegen --version").run().is_err() {
+        println!("📦 Installing flutter_rust_bridge_codegen...");
+        cmd!(sh, "cargo install flutter_rust_bridge_codegen --version 2.3.0").run()?;
+    }
+
+    sh.change_dir(project_root()?);
+    cmd!(sh, "flutter_rust_bridge_codegen integrate").run()?;
+
+    println!("✅ Bridge integrated successfully");
+    Ok(())
+}
+
+fn run_codegen(sh: &Shell) -> Result<()> {
+    println!("⚙️  Generating Rust-Dart bindings...");
+
+    // In FRB V2, codegen is often automatic, but we provide this for manual sync
+    cmd!(sh, "flutter_rust_bridge_codegen generate").run()?;
+
+    println!("✅ Bindings generated");
     Ok(())
 }
