@@ -68,8 +68,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # --- Flutter Bridge (FFI) ---
-# Version will be updated when flutter_rust_bridge is configured
-# flutter_rust_bridge = "2.0"
+flutter_rust_bridge = { version = "2.11.1", features = ["chrono", "uuid"] }
 
 # --- Async (for potential future features) ---
 tokio = { version = "1.41", features = ["rt", "fs", "io-util"] }

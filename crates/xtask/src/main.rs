@@ -80,6 +80,12 @@ enum Commands {
     /// Initialize Flutter project (first-time setup)
     InitFlutter,
 
+    /// Integrate flutter_rust_bridge into the Flutter app
+    IntegrateBridge,
+
+    /// Generate Rust-Dart bindings
+    Codegen,
+
     /// Run fuzz tests (requires nightly and cargo-fuzz)
     Fuzz {
         /// Target to fuzz (kallsyms_scanner, kallsyms_decoder, boot_image, decompressor)
@@ -90,6 +96,9 @@ enum Commands {
         #[arg(short, long, default_value = "60")]
         max_time: u32,
     },
+
+    /// Check development environment
+    Doctor,
 }
 
 // ============================================================
@@ -114,13 +123,59 @@ fn main() -> Result<()> {
         Commands::Clean => clean(&sh),
         Commands::Doc { open } => build_doc(&sh, open),
         Commands::InitFlutter => init_flutter(&sh),
+        Commands::IntegrateBridge => integrate_bridge(&sh),
+        Commands::Codegen => run_codegen(&sh),
         Commands::Fuzz { target, max_time } => run_fuzz(&sh, &target, max_time),
+        Commands::Doctor => run_doctor(&sh),
     }
 }
 
 // ============================================================
 // Task Implementations
 // ============================================================
+
+fn run_doctor(sh: &Shell) -> Result<()> {
+    println!("🩺 Checking development environment...");
+    println!();
+
+    let mut tools = vec![
+        ("cargo", "Rust toolchain", "https://rustup.rs/"),
+        ("flutter", "Flutter SDK", "https://docs.flutter.dev/get-started/install"),
+        ("flutter_rust_bridge_codegen", "FRB Codegen", "cargo install flutter_rust_bridge_codegen"),
+        ("cmake", "CMake", "https://cmake.org/download/"),
+    ];
+
+    if cfg!(windows) {
+        // precise fix for Windows where flutter is a .bat
+        tools[1].0 = "flutter.bat";
+    }
+
+    let mut all_ok = true;
+
+    for (cmd_name, nice_name, install_hint) in tools {
+        print!("checking {}... ", nice_name);
+        match cmd!(sh, "{cmd_name} --version").quiet().read() {
+            Ok(version) => {
+                let v = version.lines().next().unwrap_or("unknown");
+                println!("✅ {}", v);
+            },
+            Err(_) => {
+                println!("❌ Not found");
+                println!("   👉 Please install via: {}", install_hint);
+                all_ok = false;
+            },
+        }
+    }
+
+    println!();
+    if all_ok {
+        println!("✨ Environment matches 2026 standards. Ready to build!");
+    } else {
+        println!("⚠️  Some tools are missing. Please fix the issues above.");
+    }
+
+    Ok(())
+}
 
 fn build_cli(sh: &Shell, release: bool) -> Result<()> {
     println!("🔨 Building kernel-lens CLI...");
@@ -315,5 +370,67 @@ fn run_fuzz(sh: &Shell, target: &str, max_time: u32) -> Result<()> {
     cmd!(sh, "cargo +nightly fuzz run {target_name} -- -max_total_time={max_time_str}").run()?;
 
     println!("✅ Fuzz test completed");
+    Ok(())
+}
+
+fn integrate_bridge(sh: &Shell) -> Result<()> {
+    println!("🔗 Integrating flutter_rust_bridge...");
+
+    // Ensure codegen is installed
+    if cmd!(sh, "flutter_rust_bridge_codegen --version").run().is_err() {
+        println!("📦 Installing flutter_rust_bridge_codegen...");
+        cmd!(sh, "cargo install flutter_rust_bridge_codegen --version 2.3.0").run()?;
+    }
+
+    sh.change_dir(project_root()?);
+    cmd!(sh, "flutter_rust_bridge_codegen integrate").run()?;
+
+    println!("✅ Bridge integrated successfully");
+    Ok(())
+}
+
+fn run_codegen(sh: &Shell) -> Result<()> {
+    println!("⚙️  Generating Rust-Dart bindings...");
+
+    let app_dir = project_root()?.join("app");
+    sh.change_dir(&app_dir);
+
+    // In FRB V2, codegen is often automatic, but we provide this for manual sync
+    cmd!(sh, "flutter_rust_bridge_codegen generate").run()?;
+
+    // Verify paths did not reset
+    verify_paths(sh)?;
+
+    println!("✅ Bindings generated");
+    Ok(())
+}
+
+fn verify_paths(_sh: &Shell) -> Result<()> {
+    println!("🔍 Verifying build paths...");
+    let root = project_root()?;
+
+    // 1. Check Windows CMake
+    let cmake_path = root.join("app/rust_builder/windows/CMakeLists.txt");
+    let content = std::fs::read_to_string(&cmake_path)?;
+    if !content.contains("crates/kernel_ffi") || !content.contains("kernel_ffi") {
+        println!("⚠️  Windows CMakeLists.txt path incorrect. Fixing...");
+        let new_content = content
+            .replace("../../rust", "../../../crates/kernel_ffi")
+            .replace("rust_lib_kernel_lens_app", "kernel_ffi");
+        std::fs::write(&cmake_path, new_content)?;
+    }
+
+    // 2. Check Android Gradle
+    let gradle_path = root.join("app/rust_builder/android/build.gradle");
+    let content = std::fs::read_to_string(&gradle_path)?;
+    if !content.contains("crates/kernel_ffi") {
+        println!("⚠️  Android build.gradle path incorrect. Fixing...");
+        let new_content = content
+            .replace("manifestDir = \"../../rust\"", "manifestDir = \"../../../crates/kernel_ffi\"")
+            .replace("libname = \"rust_lib_kernel_lens_app\"", "libname = \"kernel_ffi\"");
+        std::fs::write(&gradle_path, new_content)?;
+    }
+
+    println!("✅ Build paths verified");
     Ok(())
 }
