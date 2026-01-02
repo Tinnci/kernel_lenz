@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -375,11 +376,33 @@ class AnalysisDashboard extends ConsumerWidget {
   }
 }
 
-class SymbolListSheet extends ConsumerWidget {
+class SymbolListSheet extends ConsumerStatefulWidget {
   const SymbolListSheet({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SymbolListSheet> createState() => _SymbolListSheetState();
+}
+
+class _SymbolListSheetState extends ConsumerState<SymbolListSheet> {
+  final _searchController = TextEditingController();
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      ref.read(analysisControllerProvider.notifier).updateFilter(query);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(analysisControllerProvider);
     final symbols = state.visibleSymbols ?? [];
 
@@ -410,24 +433,51 @@ class SymbolListSheet extends ConsumerWidget {
               ),
               Padding(
                 padding: const EdgeInsets.all(24),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Recovered Symbols (${state.summary?.symbolCount ?? 0})',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                    Row(
+                      children: [
+                        Text(
+                          'Recovered Symbols (${state.summary?.symbolCount ?? 0})',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    if (state.hasMore)
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Search symbols (e.g. sys_call_table)...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: state.status == AnalysisStatus.loading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceVariant.withAlpha(100),
                       ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),

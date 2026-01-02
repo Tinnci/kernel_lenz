@@ -73,7 +73,7 @@ class AnalysisController extends _$AnalysisController {
     final nextPage = state.currentPage + 1;
     try {
       final newSymbols = await session.querySymbols(
-        filter: "",
+        filter: state.currentFilter,
         sortBy: SortColumn.address,
         ascending: true,
         page: BigInt.from(nextPage),
@@ -93,6 +93,35 @@ class AnalysisController extends _$AnalysisController {
     } catch (e) {
       developer.log("Error loading more symbols", error: e);
       state = state.copyWith(isLoadingMore: false);
+    }
+  }
+
+  Future<void> updateFilter(String filter) async {
+    final session = state.session;
+    if (session == null) return;
+
+    state = state.copyWith(
+      status: AnalysisStatus.loading,
+      currentPage: 0,
+      currentFilter: filter,
+    );
+
+    try {
+      final symbols = await session.querySymbols(
+        filter: filter,
+        sortBy: SortColumn.address,
+        ascending: true,
+        page: BigInt.zero,
+        pageSize: BigInt.from(100),
+      );
+
+      state = state.copyWith(
+        status: AnalysisStatus.success,
+        visibleSymbols: symbols,
+        hasMore: symbols.length >= 100,
+      );
+    } catch (e) {
+      developer.log("Error filtering symbols", error: e);
     }
   }
 

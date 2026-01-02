@@ -12,6 +12,7 @@ class AnalysisState {
   final int currentPage;
   final bool hasMore;
   final bool isLoadingMore;
+  final String currentFilter;
   final String? error;
 
   const AnalysisState({
@@ -24,6 +25,7 @@ class AnalysisState {
     this.currentPage = 0,
     this.hasMore = true,
     this.isLoadingMore = false,
+    this.currentFilter = '',
     this.error,
   });
 
@@ -37,6 +39,7 @@ class AnalysisState {
     int? currentPage,
     bool? hasMore,
     bool? isLoadingMore,
+    String? currentFilter,
     String? error,
   }) {
     return AnalysisState(
@@ -49,6 +52,7 @@ class AnalysisState {
       currentPage: currentPage ?? this.currentPage,
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      currentFilter: currentFilter ?? this.currentFilter,
       error: error ?? this.error,
     );
   }
