@@ -398,6 +398,37 @@ fn run_codegen(sh: &Shell) -> Result<()> {
     // In FRB V2, codegen is often automatic, but we provide this for manual sync
     cmd!(sh, "flutter_rust_bridge_codegen generate").run()?;
 
+    // Verify paths did not reset
+    verify_paths(sh)?;
+
     println!("✅ Bindings generated");
+    Ok(())
+}
+
+fn verify_paths(_sh: &Shell) -> Result<()> {
+    println!("🔍 Verifying build paths...");
+    let root = project_root()?;
+    
+    // 1. Check Windows CMake
+    let cmake_path = root.join("app/rust_builder/windows/CMakeLists.txt");
+    let content = std::fs::read_to_string(&cmake_path)?;
+    if !content.contains("crates/kernel_ffi") || !content.contains("kernel_ffi") {
+        println!("⚠️  Windows CMakeLists.txt path incorrect. Fixing...");
+        let new_content = content.replace("../../rust", "../../../crates/kernel_ffi")
+                                 .replace("rust_lib_kernel_lens_app", "kernel_ffi");
+        std::fs::write(&cmake_path, new_content)?;
+    }
+
+    // 2. Check Android Gradle
+    let gradle_path = root.join("app/rust_builder/android/build.gradle");
+    let content = std::fs::read_to_string(&gradle_path)?;
+    if !content.contains("crates/kernel_ffi") {
+         println!("⚠️  Android build.gradle path incorrect. Fixing...");
+         let new_content = content.replace("manifestDir = \"../../rust\"", "manifestDir = \"../../../crates/kernel_ffi\"")
+                                  .replace("libname = \"rust_lib_kernel_lens_app\"", "libname = \"kernel_ffi\"");
+         std::fs::write(&gradle_path, new_content)?;
+    }
+
+    println!("✅ Build paths verified");
     Ok(())
 }
