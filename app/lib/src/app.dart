@@ -436,12 +436,14 @@ class SymbolListSheet extends ConsumerWidget {
                 child: ListView.builder(
                   controller: scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: symbols.length + (state.hasMore ? 1 : 0),
+                  itemCount: symbols.length + (state.isLoadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == symbols.length) {
                       return const Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Center(child: CircularProgressIndicator()),
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       );
                     }
 
