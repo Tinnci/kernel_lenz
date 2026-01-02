@@ -22,17 +22,18 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
 ## Phase 3: Flutter UI Integration (Ongoing 🚀)
 - [x] Flutter V2 integration via `flutter_rust_bridge`
 - [x] Desktop-first UI with Glassmorphism aesthetics
-- [ ] Real-time analysis progress visualization
-- [/] Symbol search & filtering interface (Backend logic implemented 🦀)
-- [ ] Integrated HEX viewer for kernel exploration
+- [x] Real-time analysis progress visualization (StreamSink)
+- [x] Symbol search & filtering interface (Backend + Infinite Scroll UI)
+- [ ] Integrated HEX viewer for kernel exploration (API ready, UI pending)
 - [x] **Stability & Build Hardening**: 
     - [x] Cross-platform line-ending normalization (.gitattributes)
     - [x] `xtask verify-paths` for auto-healing build scripts
-- [ ] **FFI V2 Upgrade (2026 Spec)**: 
-    - [ ] `StreamSink` for streaming symbol tables
-    - [x] **Zero-Copy**: Implement Rust-side sorting/filtering/search to minimize dart object creation
-    - [x] **xtask doctor**: Automated environment validation (NDK, LLVM, Flutter)
-    - [ ] **Binary Diet**: CI integration with `cargo-bloat` & `panic="abort"` optimization
+    - [x] FFI race condition guards (`isLoadingMore` lock)
+- [x] **FFI V2 Upgrade (2026 Spec)**: 
+    - [x] `StreamSink` for real-time progress updates
+    - [x] **Zero-Copy**: Rust-side sorting/filtering/pagination
+    - [x] **xtask doctor**: Automated environment validation
+    - [/] **Binary Diet**: `panic="abort"` configured, CI integration pending
 
 ## Phase 4: Advanced Tools (Planned 📅)
 - [ ] IDA/Ghidra script export
