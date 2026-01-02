@@ -90,20 +90,24 @@ pub fn start_analysis(
     };
 
     sink.add(ProgressUpdate {
-        step: "Scanning symbols...".to_string(),
+        step: "Scanning symbols... (this may take a few seconds)".to_string(),
         progress: 0.4,
         session: None,
     })
     .unwrap();
+    tracing::info!("Starting KallsymsFinder scanning...");
     let kallsyms = KallsymsFinder::new(&kernel_data)?.into_result();
+    tracing::info!("Found {} symbols across kernel", kallsyms.symbol_count);
 
     sink.add(ProgressUpdate {
-        step: "Building ELF...".to_string(),
+        step: "Found symbols, building ELF metadata...".to_string(),
         progress: 0.7,
         session: None,
     })
     .unwrap();
+    tracing::info!("Building ELF builder for {:?} arch", kallsyms.arch);
     let elf_bytes = ElfBuilder::new(&kernel_data, &kallsyms).build()?;
+    tracing::info!("ELF reconstruction complete, size: {} bytes", elf_bytes.len());
 
     sink.add(ProgressUpdate {
         step: "Finalizing...".to_string(),

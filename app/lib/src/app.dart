@@ -89,6 +89,28 @@ class MainScreen extends ConsumerWidget {
   }
 }
 
+void showSymbolsSheet(BuildContext context, WidgetRef ref) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => const SymbolListSheet(),
+  );
+}
+
+void showHexViewerSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  int? initialOffset,
+}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => HexViewerSheet(initialOffset: initialOffset),
+  );
+}
+
 class AnalysisDashboard extends ConsumerWidget {
   const AnalysisDashboard({super.key});
 
@@ -207,7 +229,7 @@ class AnalysisDashboard extends ConsumerWidget {
                         'Symbols Found',
                         '${state.summary?.symbolCount ?? 0}',
                         Icons.tag,
-                        onTap: () => _showSymbols(context),
+                        onTap: () => showSymbolsSheet(context, ref),
                       ),
                     ),
                     SizedBox(
@@ -228,7 +250,7 @@ class AnalysisDashboard extends ConsumerWidget {
                         'ELF Dump',
                         'Hex Viewer',
                         Icons.settings_ethernet,
-                        onTap: () => _showHexViewer(context),
+                        onTap: () => showHexViewerSheet(context, ref),
                       ),
                     ),
                   ],
@@ -238,24 +260,6 @@ class AnalysisDashboard extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  void _showSymbols(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const SymbolListSheet(),
-    );
-  }
-
-  void _showHexViewer(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const HexViewerSheet(),
     );
   }
 
@@ -581,6 +585,18 @@ class _SymbolListSheetState extends ConsumerState<SymbolListSheet> {
                           ).colorScheme.onSurface.withAlpha(120),
                         ),
                       ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.data_object, size: 20),
+                        tooltip: 'View in Hex',
+                        onPressed: () {
+                          Navigator.pop(context);
+                          showHexViewerSheet(
+                            context,
+                            ref,
+                            initialOffset: sym.addr.toInt(),
+                          );
+                        },
+                      ),
                     );
                   },
                 ),
@@ -645,7 +661,8 @@ class _SortChip extends StatelessWidget {
 }
 
 class HexViewerSheet extends ConsumerStatefulWidget {
-  const HexViewerSheet({super.key});
+  final int? initialOffset;
+  const HexViewerSheet({super.key, this.initialOffset});
 
   @override
   ConsumerState<HexViewerSheet> createState() => _HexViewerSheetState();
@@ -653,6 +670,38 @@ class HexViewerSheet extends ConsumerStatefulWidget {
 
 class _HexViewerSheetState extends ConsumerState<HexViewerSheet> {
   final int _linesPerBlock = 128;
+  late final ScrollController _scrollController;
+  final _addressController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    if (widget.initialOffset != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _jumpToOffset(widget.initialOffset!);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  void _jumpToOffset(int offset) {
+    final lineIndex = offset ~/ 16;
+    final scrollPos = lineIndex * 28.0; // 28 is itemExtent
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        scrollPos,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -687,7 +736,42 @@ class _HexViewerSheetState extends ConsumerState<HexViewerSheet> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: TextField(
+                        controller: _addressController,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 13,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Jump to address (hex)...',
+                          prefixIcon: const Icon(Icons.near_me, size: 16),
+                          filled: true,
+                          fillColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest.withAlpha(80),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onSubmitted: (value) {
+                          final cleanValue = value.replaceFirst('0x', '');
+                          final offset = int.tryParse(cleanValue, radix: 16);
+                          if (offset != null) {
+                            _jumpToOffset(offset);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
                   Text(
                     '${(kernelSize / 1024 / 1024).toStringAsFixed(2)} MB total',
                     style: TextStyle(
@@ -725,7 +809,7 @@ class _HexViewerSheetState extends ConsumerState<HexViewerSheet> {
             const Divider(height: 1),
             Expanded(
               child: ListView.builder(
-                controller: scrollController,
+                controller: _scrollController,
                 itemExtent: 28,
                 itemCount: totalLines,
                 padding: const EdgeInsets.symmetric(vertical: 8),

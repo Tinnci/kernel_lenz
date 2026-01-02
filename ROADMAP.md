@@ -25,11 +25,13 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
 - [x] Real-time analysis progress visualization (StreamSink)
 - [x] Symbol search & filtering interface (Backend + Infinite Scroll UI)
 - [x] **Sorting Controls**: Address/Name/Type sorting with direction toggle
-- [ ] Integrated HEX viewer for kernel exploration (API ready, UI pending)
+- [x] Integrated HEX viewer for kernel exploration (API ready, UI ongoing)
 - [x] **Stability & Build Hardening**: 
     - [x] Cross-platform line-ending normalization (.gitattributes)
     - [x] `xtask verify-paths` for auto-healing build scripts
     - [x] FFI race condition guards (`isLoadingMore` lock)
+    - [x] **Windows Build Stabilization**: Fixed Cargokit path resolution for symlinks
+    - [x] **Flutter 3.40 Compatibility**: Upgraded `flex_color_scheme` & dependency sync
 - [x] **FFI V2 Upgrade (2026 Spec)**: 
     - [x] `StreamSink` for real-time progress updates
     - [x] **Zero-Copy**: Rust-side sorting/filtering/pagination

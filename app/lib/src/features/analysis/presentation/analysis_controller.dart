@@ -1,7 +1,7 @@
-import 'dart:developer' as developer;
 import 'package:kernel_lens_app/src/rust/api.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_state.dart';
+import 'package:kernel_lens_app/src/common/utils/logger.dart';
 
 part 'analysis_controller.g.dart';
 
@@ -19,10 +19,16 @@ class AnalysisController extends _$AnalysisController {
     );
 
     try {
+      AppLogger.i('Starting analysis for: $path');
       final stream = startAnalysis(inputPath: path);
 
       await for (final update in stream) {
+        AppLogger.d(
+          'FFI Progress: ${update.step} (${(update.progress * 100).toStringAsFixed(1)}%)',
+        );
+
         if (update.session != null) {
+          AppLogger.i('Analysis successful, received session object.');
           final session = update.session!;
           // Initial query (first 100 items)
           final symbols = await session.querySymbols(
@@ -90,8 +96,8 @@ class AnalysisController extends _$AnalysisController {
           isLoadingMore: false,
         );
       }
-    } catch (e) {
-      developer.log("Error loading more symbols", error: e);
+    } catch (e, stack) {
+      AppLogger.e('Error loading more symbols', e, stack);
       state = state.copyWith(isLoadingMore: false);
     }
   }
@@ -120,8 +126,8 @@ class AnalysisController extends _$AnalysisController {
         visibleSymbols: symbols,
         hasMore: symbols.length >= 100,
       );
-    } catch (e) {
-      developer.log("Error filtering symbols", error: e);
+    } catch (e, stack) {
+      AppLogger.e("Error filtering symbols", e, stack);
     }
   }
 
@@ -155,9 +161,24 @@ class AnalysisController extends _$AnalysisController {
         visibleSymbols: symbols,
         hasMore: symbols.length >= 100,
       );
-    } catch (e) {
-      developer.log("Error updating sort", error: e);
+    } catch (e, stack) {
+      AppLogger.e("Error updating sort", e, stack);
     }
+  }
+
+  Future<void> jumpToAddress(int address) async {
+    final session = state.session;
+    if (session == null) return;
+
+    // Convert address to file offset (assuming 1:1 for now if it's a raw kernel,
+    // or offset from base if it's an ELF).
+    // For simplicity in this UI iteration, we treat it as an absolute offset.
+    final int offset = address;
+    final int lineIndex = offset ~/ 16;
+
+    // Predispatch the load for this block
+    final int startLine = (lineIndex ~/ 128) * 128;
+    await loadHexRange(startLine, 128);
   }
 
   Future<void> loadHexRange(int startLine, int count) async {
@@ -192,8 +213,8 @@ class AnalysisController extends _$AnalysisController {
       }
 
       state = state.copyWith(hexCache: newCache);
-    } catch (e) {
-      developer.log("Error loading hex range", error: e);
+    } catch (e, stack) {
+      AppLogger.e("Error loading hex range", e, stack);
     }
   }
 
