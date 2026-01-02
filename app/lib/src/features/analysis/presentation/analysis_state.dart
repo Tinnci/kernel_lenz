@@ -13,6 +13,8 @@ class AnalysisState {
   final bool hasMore;
   final bool isLoadingMore;
   final String currentFilter;
+  final SortColumn currentSort;
+  final bool ascending;
   final String? error;
 
   const AnalysisState({
@@ -26,6 +28,8 @@ class AnalysisState {
     this.hasMore = true,
     this.isLoadingMore = false,
     this.currentFilter = '',
+    this.currentSort = SortColumn.address,
+    this.ascending = true,
     this.error,
   });
 
@@ -40,6 +44,8 @@ class AnalysisState {
     bool? hasMore,
     bool? isLoadingMore,
     String? currentFilter,
+    SortColumn? currentSort,
+    bool? ascending,
     String? error,
   }) {
     return AnalysisState(
@@ -53,6 +59,8 @@ class AnalysisState {
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       currentFilter: currentFilter ?? this.currentFilter,
+      currentSort: currentSort ?? this.currentSort,
+      ascending: ascending ?? this.ascending,
       error: error ?? this.error,
     );
   }

@@ -99,6 +99,9 @@ enum Commands {
 
     /// Check development environment
     Doctor,
+
+    /// Check binary size using cargo-bloat
+    Bloat,
 }
 
 // ============================================================
@@ -127,6 +130,7 @@ fn main() -> Result<()> {
         Commands::Codegen => run_codegen(&sh),
         Commands::Fuzz { target, max_time } => run_fuzz(&sh, &target, max_time),
         Commands::Doctor => run_doctor(&sh),
+        Commands::Bloat => run_bloat(&sh),
     }
 }
 
@@ -432,5 +436,24 @@ fn verify_paths(_sh: &Shell) -> Result<()> {
     }
 
     println!("✅ Build paths verified");
+    Ok(())
+}
+
+fn run_bloat(sh: &Shell) -> Result<()> {
+    println!("📊 Analyzing binary size (Binary Diet)...");
+
+    // Check if cargo-bloat is installed
+    if cmd!(sh, "cargo bloat --version").quiet().run().is_err() {
+        println!("📦 cargo-bloat not found. Installing...");
+        cmd!(sh, "cargo install cargo-bloat").run()?;
+    }
+
+    println!("\n[1/2] Analyzing kernel_ffi (Release)...");
+    let _ = cmd!(sh, "cargo bloat --release -p kernel_ffi --full-fn -n 20").run();
+
+    println!("\n[2/2] Analyzing kernel_core (Release)...");
+    let _ = cmd!(sh, "cargo bloat --release -p kernel_core --full-fn -n 20").run();
+
+    println!("\n💡 Tip: Use `cargo bloat --release -p <pkg> --full-fn` for a deeper dive.");
     Ok(())
 }

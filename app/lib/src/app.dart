@@ -8,6 +8,7 @@ import 'package:kernel_lens_app/src/common/widgets/glass_card.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_progress_card.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_controller.dart';
 import 'package:kernel_lens_app/src/features/analysis/presentation/analysis_state.dart';
+import 'package:kernel_lens_app/src/rust/api.dart';
 
 class KernelLensApp extends ConsumerWidget {
   const KernelLensApp({super.key});
@@ -479,6 +480,43 @@ class _SymbolListSheetState extends ConsumerState<SymbolListSheet> {
                         ).colorScheme.surfaceContainerHighest.withAlpha(100),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _SortChip(
+                            label: 'Address',
+                            column: SortColumn.address,
+                            activeColumn: state.currentSort,
+                            ascending: state.ascending,
+                            onTap: () => ref
+                                .read(analysisControllerProvider.notifier)
+                                .updateSort(SortColumn.address),
+                          ),
+                          const SizedBox(width: 8),
+                          _SortChip(
+                            label: 'Name',
+                            column: SortColumn.name,
+                            activeColumn: state.currentSort,
+                            ascending: state.ascending,
+                            onTap: () => ref
+                                .read(analysisControllerProvider.notifier)
+                                .updateSort(SortColumn.name),
+                          ),
+                          const SizedBox(width: 8),
+                          _SortChip(
+                            label: 'Type',
+                            column: SortColumn.type,
+                            activeColumn: state.currentSort,
+                            ascending: state.ascending,
+                            onTap: () => ref
+                                .read(analysisControllerProvider.notifier)
+                                .updateSort(SortColumn.type),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -529,6 +567,57 @@ class _SymbolListSheetState extends ConsumerState<SymbolListSheet> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SortChip extends StatelessWidget {
+  final String label;
+  final SortColumn column;
+  final SortColumn activeColumn;
+  final bool ascending;
+  final VoidCallback onTap;
+
+  const _SortChip({
+    required this.label,
+    required this.column,
+    required this.activeColumn,
+    required this.ascending,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isActive = column == activeColumn;
+
+    return FilterChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          if (isActive) ...[
+            const SizedBox(width: 4),
+            Icon(
+              ascending ? Icons.arrow_upward : Icons.arrow_downward,
+              size: 14,
+            ),
+          ],
+        ],
+      ),
+      selected: isActive,
+      onSelected: (_) => onTap(),
+      backgroundColor: Colors.transparent,
+      selectedColor: Theme.of(context).colorScheme.primary.withAlpha(50),
+      checkmarkColor: Theme.of(context).colorScheme.primary,
+      showCheckmark: false,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isActive
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.outline.withAlpha(50),
         ),
       ),
     );

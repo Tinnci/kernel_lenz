@@ -74,8 +74,8 @@ class AnalysisController extends _$AnalysisController {
     try {
       final newSymbols = await session.querySymbols(
         filter: state.currentFilter,
-        sortBy: SortColumn.address,
-        ascending: true,
+        sortBy: state.currentSort,
+        ascending: state.ascending,
         page: BigInt.from(nextPage),
         pageSize: BigInt.from(100),
       );
@@ -109,8 +109,8 @@ class AnalysisController extends _$AnalysisController {
     try {
       final symbols = await session.querySymbols(
         filter: filter,
-        sortBy: SortColumn.address,
-        ascending: true,
+        sortBy: state.currentSort,
+        ascending: state.ascending,
         page: BigInt.zero,
         pageSize: BigInt.from(100),
       );
@@ -122,6 +122,41 @@ class AnalysisController extends _$AnalysisController {
       );
     } catch (e) {
       developer.log("Error filtering symbols", error: e);
+    }
+  }
+
+  Future<void> updateSort(SortColumn column) async {
+    final session = state.session;
+    if (session == null) return;
+
+    // If same column, toggle ascending. If new column, default to ascending.
+    final bool newAscending = (state.currentSort == column)
+        ? !state.ascending
+        : true;
+
+    state = state.copyWith(
+      status: AnalysisStatus.loading,
+      currentPage: 0,
+      currentSort: column,
+      ascending: newAscending,
+    );
+
+    try {
+      final symbols = await session.querySymbols(
+        filter: state.currentFilter,
+        sortBy: column,
+        ascending: newAscending,
+        page: BigInt.zero,
+        pageSize: BigInt.from(100),
+      );
+
+      state = state.copyWith(
+        status: AnalysisStatus.success,
+        visibleSymbols: symbols,
+        hasMore: symbols.length >= 100,
+      );
+    } catch (e) {
+      developer.log("Error updating sort", error: e);
     }
   }
 

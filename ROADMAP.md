@@ -24,6 +24,7 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
 - [x] Desktop-first UI with Glassmorphism aesthetics
 - [x] Real-time analysis progress visualization (StreamSink)
 - [x] Symbol search & filtering interface (Backend + Infinite Scroll UI)
+- [x] **Sorting Controls**: Address/Name/Type sorting with direction toggle
 - [ ] Integrated HEX viewer for kernel exploration (API ready, UI pending)
 - [x] **Stability & Build Hardening**: 
     - [x] Cross-platform line-ending normalization (.gitattributes)
@@ -33,7 +34,7 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
     - [x] `StreamSink` for real-time progress updates
     - [x] **Zero-Copy**: Rust-side sorting/filtering/pagination
     - [x] **xtask doctor**: Automated environment validation
-    - [/] **Binary Diet**: `panic="abort"` configured, CI integration pending
+    - [x] **Binary Diet**: `cargo-bloat` integrated into `xtask bloat`
 
 ## Phase 4: Advanced Tools (Planned 📅)
 - [ ] IDA/Ghidra script export
