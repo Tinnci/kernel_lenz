@@ -206,8 +206,7 @@ class AnalysisDashboard extends ConsumerWidget {
                         'Symbols Found',
                         '${state.summary?.symbolCount ?? 0}',
                         Icons.tag,
-                        onTap: () =>
-                            _showSymbols(context, state.visibleSymbols ?? []),
+                        onTap: () => _showSymbols(context),
                       ),
                     ),
                     SizedBox(
@@ -230,85 +229,12 @@ class AnalysisDashboard extends ConsumerWidget {
     );
   }
 
-  void _showSymbols(BuildContext context, List<FrbKernelSymbol> symbols) {
+  void _showSymbols(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        maxChildSize: 0.95,
-        minChildSize: 0.5,
-        builder: (_, scrollController) => GlassCard(
-          borderRadius: 24,
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(50),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    Text(
-                      'Recovered Symbols (First 100)',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: symbols.length,
-                  itemBuilder: (context, index) {
-                    final sym = symbols[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer,
-                        child: Text(
-                          sym.stype,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        sym.name,
-                        style: const TextStyle(fontFamily: 'monospace'),
-                      ),
-                      subtitle: Text(
-                        '0x${sym.addr.toRadixString(16).padLeft(16, '0')}',
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withAlpha(120),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (context) => const SymbolListSheet(),
     );
   }
 
@@ -440,6 +366,114 @@ class AnalysisDashboard extends ConsumerWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SymbolListSheet extends ConsumerWidget {
+  const SymbolListSheet({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(analysisControllerProvider);
+    final symbols = state.visibleSymbols ?? [];
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      builder: (_, scrollController) => NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification scrollInfo) {
+          if (scrollInfo.metrics.pixels >=
+              scrollInfo.metrics.maxScrollExtent - 200) {
+            ref.read(analysisControllerProvider.notifier).loadMore();
+          }
+          return true;
+        },
+        child: GlassCard(
+          borderRadius: 24,
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(50),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    Text(
+                      'Recovered Symbols (${state.summary?.symbolCount ?? 0})',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    if (state.hasMore)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  itemCount: symbols.length + (state.hasMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == symbols.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    final sym = symbols[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer,
+                        child: Text(
+                          sym.stype,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        sym.name,
+                        style: const TextStyle(fontFamily: 'monospace'),
+                      ),
+                      subtitle: Text(
+                        '0x${sym.addr.toRadixString(16).padLeft(16, '0')}',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withAlpha(120),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],

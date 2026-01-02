@@ -158,6 +158,29 @@ impl AnalysisSession {
             self.symbols.iter().filter(|s| s.name.to_lowercase().contains(&lower_filter)).count()
         }
     }
+
+    /// Read a chunk of the kernel for hex viewing.
+    pub fn get_hex_chunk(&self, offset: usize, length: usize) -> HexChunk {
+        let start = offset.min(self.elf_bytes.len());
+        let end = (offset + length).min(self.elf_bytes.len());
+
+        HexChunk {
+            content: self.elf_bytes[start..end].to_vec(),
+            offset: start as u64,
+            total_size: self.elf_bytes.len() as u64,
+        }
+    }
+}
+
+/// A chunk of hex data for the viewer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HexChunk {
+    /// Raw byte content.
+    pub content: Vec<u8>,
+    /// Starting offset in the file/memory.
+    pub offset: u64,
+    /// Total size of the underlying data (for scrollbar calculation).
+    pub total_size: u64,
 }
 
 /// Detect compression format of a file.

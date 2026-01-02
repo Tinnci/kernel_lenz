@@ -9,6 +9,8 @@ class AnalysisState {
   final AnalysisSession? session;
   final AnalysisSummary? summary;
   final List<FrbKernelSymbol>? visibleSymbols;
+  final int currentPage;
+  final bool hasMore;
   final String? error;
 
   const AnalysisState({
@@ -18,6 +20,8 @@ class AnalysisState {
     this.session,
     this.summary,
     this.visibleSymbols,
+    this.currentPage = 0,
+    this.hasMore = true,
     this.error,
   });
 
@@ -28,6 +32,8 @@ class AnalysisState {
     AnalysisSession? session,
     AnalysisSummary? summary,
     List<FrbKernelSymbol>? visibleSymbols,
+    int? currentPage,
+    bool? hasMore,
     String? error,
   }) {
     return AnalysisState(
@@ -37,6 +43,8 @@ class AnalysisState {
       session: session ?? this.session,
       summary: summary ?? this.summary,
       visibleSymbols: visibleSymbols ?? this.visibleSymbols,
+      currentPage: currentPage ?? this.currentPage,
+      hasMore: hasMore ?? this.hasMore,
       error: error ?? this.error,
     );
   }

@@ -66,7 +66,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 431532127;
+  int get rustContentHash => 1427784897;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -98,6 +98,12 @@ abstract class RustLibApi extends BaseApi {
   Future<BigInt> crateApiAnalysisSessionCountFiltered({
     required AnalysisSession that,
     required String filter,
+  });
+
+  Future<HexChunk> crateApiAnalysisSessionGetHexChunk({
+    required AnalysisSession that,
+    required BigInt offset,
+    required BigInt length,
   });
 
   Future<AnalysisSession> crateApiAnalysisSessionNew({
@@ -322,6 +328,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<HexChunk> crateApiAnalysisSessionGetHexChunk({
+    required AnalysisSession that,
+    required BigInt offset,
+    required BigInt length,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerAnalysisSession(
+            that,
+            serializer,
+          );
+          sse_encode_usize(offset, serializer);
+          sse_encode_usize(length, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_hex_chunk,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiAnalysisSessionGetHexChunkConstMeta,
+        argValues: [that, offset, length],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAnalysisSessionGetHexChunkConstMeta =>
+      const TaskConstMeta(
+        debugName: "AnalysisSession_get_hex_chunk",
+        argNames: ["that", "offset", "length"],
+      );
+
+  @override
   Future<AnalysisSession> crateApiAnalysisSessionNew({
     required String inputPath,
   }) {
@@ -333,7 +379,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 7,
             port: port_,
           );
         },
@@ -379,7 +425,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 8,
             port: port_,
           );
         },
@@ -410,7 +456,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 9,
             port: port_,
           );
         },
@@ -439,7 +485,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 10,
             port: port_,
           );
         },
@@ -467,7 +513,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 11,
             port: port_,
           );
         },
@@ -623,6 +669,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       addr: dco_decode_u_64(arr[0]),
       name: dco_decode_String(arr[1]),
       stype: dco_decode_String(arr[2]),
+    );
+  }
+
+  @protected
+  HexChunk dco_decode_hex_chunk(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return HexChunk(
+      content: dco_decode_list_prim_u_8_strict(arr[0]),
+      offset: dco_decode_u_64(arr[1]),
+      totalSize: dco_decode_u_64(arr[2]),
     );
   }
 
@@ -812,6 +871,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_name = sse_decode_String(deserializer);
     var var_stype = sse_decode_String(deserializer);
     return FrbKernelSymbol(addr: var_addr, name: var_name, stype: var_stype);
+  }
+
+  @protected
+  HexChunk sse_decode_hex_chunk(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_list_prim_u_8_strict(deserializer);
+    var var_offset = sse_decode_u_64(deserializer);
+    var var_totalSize = sse_decode_u_64(deserializer);
+    return HexChunk(
+      content: var_content,
+      offset: var_offset,
+      totalSize: var_totalSize,
+    );
   }
 
   @protected
@@ -1020,6 +1092,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_hex_chunk(HexChunk self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_prim_u_8_strict(self.content, serializer);
+    sse_encode_u_64(self.offset, serializer);
+    sse_encode_u_64(self.totalSize, serializer);
+  }
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putInt32(self);
@@ -1117,6 +1197,16 @@ class AnalysisSessionImpl extends RustOpaque implements AnalysisSession {
   /// Get the total count of symbols after filtering (for pagination).
   Future<BigInt> countFiltered({required String filter}) => RustLib.instance.api
       .crateApiAnalysisSessionCountFiltered(that: this, filter: filter);
+
+  /// Read a chunk of the kernel for hex viewing.
+  Future<HexChunk> getHexChunk({
+    required BigInt offset,
+    required BigInt length,
+  }) => RustLib.instance.api.crateApiAnalysisSessionGetHexChunk(
+    that: this,
+    offset: offset,
+    length: length,
+  );
 
   /// Query symbols using server-side filtering and sorting.
   ///

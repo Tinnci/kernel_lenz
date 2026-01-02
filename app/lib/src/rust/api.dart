@@ -6,7 +6,7 @@
 import 'package:kernel_lens_app/src/rust/frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// Analyze a boot image file and return header information.
 Future<BootImageHeader> getBootInfo({required String path}) =>
@@ -28,6 +28,12 @@ abstract class AnalysisSession implements RustOpaqueInterface {
 
   /// Get the total count of symbols after filtering (for pagination).
   Future<BigInt> countFiltered({required String filter});
+
+  /// Read a chunk of the kernel for hex viewing.
+  Future<HexChunk> getHexChunk({
+    required BigInt offset,
+    required BigInt length,
+  });
 
   // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
   /// Start a new analysis session.
@@ -120,6 +126,36 @@ class FrbKernelSymbol {
           addr == other.addr &&
           name == other.name &&
           stype == other.stype;
+}
+
+/// A chunk of hex data for the viewer.
+class HexChunk {
+  /// Raw byte content.
+  final Uint8List content;
+
+  /// Starting offset in the file/memory.
+  final BigInt offset;
+
+  /// Total size of the underlying data (for scrollbar calculation).
+  final BigInt totalSize;
+
+  const HexChunk({
+    required this.content,
+    required this.offset,
+    required this.totalSize,
+  });
+
+  @override
+  int get hashCode => content.hashCode ^ offset.hashCode ^ totalSize.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HexChunk &&
+          runtimeType == other.runtimeType &&
+          content == other.content &&
+          offset == other.offset &&
+          totalSize == other.totalSize;
 }
 
 /// Column to sort by.
