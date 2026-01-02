@@ -113,14 +113,15 @@ impl<'a> KallsymsFinder<'a> {
         // Step 2: Scan for kallsyms tables
         let scan_result = scanner::scan_for_kallsyms(data, arch)?;
         tracing::debug!(
-            "Found kallsyms tables: addresses@{:#x}, names@{:#x}, tokens@{:#x}",
+            "Found kallsyms tables: addresses@{:#x}, names@{:#x}, tokens@{:#x}, markers@{:#x}",
             scan_result.addresses_offset,
             scan_result.names_offset,
-            scan_result.token_table_offset
+            scan_result.token_table_offset,
+            scan_result.markers_offset
         );
 
         // Step 3: Infer configuration (32/64-bit, relative)
-        let config = scanner::infer_config(data, &scan_result, arch)?;
+        let config = scanner::infer_config(&scan_result)?;
         tracing::info!("Kallsyms config: {:?}", config);
 
         // Step 4: Parse addresses table

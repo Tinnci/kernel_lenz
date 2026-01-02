@@ -41,14 +41,19 @@ pub enum SortColumn {
 /// Granular error types for 2026-standard error handling.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum AnalysisError {
+    /// File not found at the specified path.
     #[error("File not found at path: {0}")]
     FileNotFound(String),
+    /// Kernel decompression failed.
     #[error("Decompression failed: {0}")]
     DecompressionFailed(String),
+    /// Kallsyms symbol table not found in kernel.
     #[error("Kallsyms not found: Kernel might be stripped or KASLR-active")]
     KallsymsNotFound,
+    /// ELF file generation failed.
     #[error("ELF reconstruction failed: {0}")]
     ElfBuildError(String),
+    /// Internal error with unknown cause.
     #[error("Unknown internal error: {0}")]
     Internal(String),
 }
@@ -147,11 +152,7 @@ pub fn start_analysis(
     let symbols: Vec<FrbKernelSymbol> = kallsyms
         .symbols
         .into_iter()
-        .map(|s| FrbKernelSymbol {
-            addr: s.address,
-            name: s.name,
-            stype: s.sym_type.to_string(),
-        })
+        .map(|s| FrbKernelSymbol { addr: s.address, name: s.name, stype: s.sym_type.to_string() })
         .collect();
 
     let session = AnalysisSession {

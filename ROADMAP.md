@@ -1,8 +1,8 @@
 ---
 status: active
-current_version: v0.2.0
-next_milestone: v0.3.0 (Flutter UI Integration)
-priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
+current_version: v0.2.1
+next_milestone: v0.3.0 (Advanced Tools & Export)
+priority_themes: ["Zero-Latency UI", "Semantic Diagnostics", "Kernel Reconstruction"]
 ---
 
 # KernelLens Roadmap
@@ -12,39 +12,31 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
 - [x] Android Boot Image (V1-V4) parser
 - [x] Multi-format decompression (LZ4, Gzip, Zstd)
 
-## Phase 2: Core Analysis Engine (Completed 🦀)
+## Phase 2: Core Analysis Engine (Refining 🛠️)
 - [x] Modular Kallsyms recovery engine
-- [x] Heuristic table scanning
+- [x] Heuristic table scanning (V2 implementation)
 - [x] Token-based name decompression
 - [x] Parallel symbol processing
+- [x] **Advanced Heuristics (vmlinux-to-elf port)**:
+    - [x] Robust token-table anchoring
+    - [x] Dynamic endianness detection via token-index pattern
+    - [x] Backtracking markers & names recovery
+    - [x] Automated relative base discovery (4.6+ kernels)
 - [x] Fuzz testing & 2026 Engineering Standards
 
-## Phase 3: Flutter UI Integration (Ongoing 🚀)
-- [x] Flutter V2 integration via `flutter_rust_bridge`
-- [x] Desktop-first UI with Glassmorphism aesthetics
-- [x] Real-time analysis progress visualization (StreamSink)
-- [x] Symbol search & filtering interface (Backend + Infinite Scroll UI)
-- [x] **Sorting Controls**: Address/Name/Type sorting with direction toggle
-- [x] Integrated HEX viewer for kernel exploration (API ready, UI ongoing)
-- [x] **Stability & Build Hardening**: 
-    - [x] Cross-platform line-ending normalization (.gitattributes)
-    - [x] `xtask verify-paths` for auto-healing build scripts
-    - [x] FFI race condition guards (`isLoadingMore` lock)
-    - [x] **Windows Build Stabilization**: Fixed Cargokit path resolution for symlinks
-    - [x] **Flutter 3.40 Compatibility**: Upgraded `flex_color_scheme` & dependency sync
-- [x] **FFI V2 Upgrade (2026 Spec)**: 
-    - [x] `StreamSink` for real-time progress updates
-    - [x] **Zero-Copy**: Rust-side sorting/filtering/pagination
-    - [x] **Defensive State Machine**: `.listen` with `cancelOnError` & FailureContext
-    - [x] **Semantic Diagnostics**: Google-style structured error hints
-    - [x] **xtask doctor**: Automated environment validation
-    - [x] **Binary Diet**: `cargo-bloat` integrated into `xtask bloat`
+## Phase 3: Flutter UI Integration (Completed 🚀)
+- [x] **Core UI Framework**:
+    - [x] Flutter V2 integration via `flutter_rust_bridge`
+    - [x] Desktop-first Glassmorphism aesthetic (Radical 2026 Design)
+    - [x] **Background Task Tray**: Persistent non-blocking analysis progress
 
-## Phase 4: Advanced Tools (Planned 📅)
-- [ ] IDA/Ghidra script export
-- [ ] Kernel structure auto-definition
-- [ ] Patching & Minimalist Re-packaging
+## Phase 4: Advanced Tools (Ongoing 📅)
+- [ ] **ELF Reconstruction Engine**: 
+    - [ ] Dynamic section mapping for non-standard kernels
+    - [ ] Symbol table injection for external tool compatibility
+- [ ] **Kernel Re-packaging**: Minimalist rebuild for rapid testing
 
-## Phase 5: Ecosystem & Community (Strategic 🌐)
+## Phase 5: Ecosystem & Strategic (Strategic 🌐)
 - [ ] Plugin system for vendor-specific offsets
 - [ ] Cloud-based symbol signature sharing
+- [ ] Multi-arch support expansion (RISC-V, x86_64)
