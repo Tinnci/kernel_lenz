@@ -25,6 +25,11 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
 - [ ] Real-time analysis progress visualization
 - [ ] Symbol search & filtering interface
 - [ ] Integrated HEX viewer for kernel exploration
+- [ ] **FFI V2 Upgrade (2026 Spec)**: 
+    - [ ] `StreamSink` for streaming symbol tables
+    - [ ] **Zero-Copy**: Implement Rust-side sorting/filtering/search to minimize dart object creation
+    - [ ] **xtask doctor**: Automated environment validation (NDK, LLVM, Flutter)
+    - [ ] **Binary Diet**: CI integration with `cargo-bloat` & `panic="abort"` optimization
 
 ## Phase 4: Advanced Tools (Planned 📅)
 - [ ] IDA/Ghidra script export
