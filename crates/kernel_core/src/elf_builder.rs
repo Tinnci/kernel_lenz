@@ -72,7 +72,7 @@ impl<'a> ElfBuilder<'a> {
             KernelArch::RiscV64 => Ok((Architecture::Riscv64, Endianness::Little)),
             KernelArch::Unknown => {
                 Err(Error::UnsupportedArch("Cannot determine ELF architecture".into()))
-            }
+            },
         }
     }
 

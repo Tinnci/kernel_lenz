@@ -14,10 +14,16 @@
 //!     -> [KallsymsFinder] -> symbols -> [ElfBuilder] -> vmlinux.elf
 //! ```
 //!
+//! ## Design Principles
+//!
+//! - **Performance**: Uses zero-copy parsing (via `scroll`) and parallel symbol recovery (via `rayon`).
+//! - **Safety**: All parser logic is continuously fuzzed. We avoid `unsafe` code unless strictly necessary for performance.
+//! - **Robustness**: Handles malformed or partial kernel images without crashing.
+//!
 //! ## Example
 //!
 //! ```rust,ignore
-//! use kernel_core::{BootImage, KernelAnalyzer};
+//! use kernel_core::{BootImage, KallsymsFinder};
 //!
 //! let boot_img = BootImage::from_file("boot.img")?;
 //! let kernel = boot_img.extract_kernel()?;

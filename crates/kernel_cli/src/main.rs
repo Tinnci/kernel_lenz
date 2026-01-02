@@ -132,10 +132,10 @@ fn main() -> Result<()> {
         Commands::Info { input, format } => cmd_info(input, format),
         Commands::Extract { input, kernel, ramdisk, decompress } => {
             cmd_extract(input, kernel, ramdisk, decompress)
-        }
+        },
         Commands::Analyze { input, output, export_symbols } => {
             cmd_analyze(input, output, export_symbols)
-        }
+        },
         Commands::Symbols { input, filter, format } => cmd_symbols(input, filter, format),
     }
 }
@@ -167,11 +167,11 @@ fn cmd_info(input: PathBuf, format: OutputFormat) -> Result<()> {
                     boot_img.header.cmdline.clone()
                 }
             );
-        }
+        },
         OutputFormat::Json => {
             let json = serde_json::to_string_pretty(&boot_img.header)?;
             println!("{}", json);
-        }
+        },
     }
 
     Ok(())
@@ -309,11 +309,11 @@ fn cmd_symbols(input: PathBuf, filter: Option<String>, format: OutputFormat) -> 
             for sym in &symbols {
                 println!("{:016x} {} {}", sym.address, sym.sym_type, sym.name);
             }
-        }
+        },
         OutputFormat::Json => {
             let json = serde_json::to_string_pretty(&symbols)?;
             println!("{}", json);
-        }
+        },
     }
 
     Ok(())

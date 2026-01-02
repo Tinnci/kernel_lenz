@@ -194,10 +194,10 @@ fn run_tests(sh: &Shell, package: Option<String>) -> Result<()> {
     match package {
         Some(pkg) => {
             cmd!(sh, "cargo test -p {pkg}").run()?;
-        }
+        },
         None => {
             cmd!(sh, "cargo test --workspace").run()?;
-        }
+        },
     }
 
     println!("✅ All tests passed");

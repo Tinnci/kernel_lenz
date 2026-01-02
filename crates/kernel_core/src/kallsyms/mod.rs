@@ -219,10 +219,10 @@ impl<'a> KallsymsFinder<'a> {
         match config.format {
             types::AddressFormat::Absolute32 => {
                 arch::Bin32Parser::parse_addresses(data, scan.addresses_offset, scan.num_symbols)
-            }
+            },
             types::AddressFormat::Absolute64 => {
                 arch::Bin64Parser::parse_addresses(data, scan.addresses_offset, scan.num_symbols)
-            }
+            },
             types::AddressFormat::Relative32 => arch::RelativeParser::parse_addresses_with_base(
                 data,
                 scan.addresses_offset,

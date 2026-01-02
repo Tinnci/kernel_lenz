@@ -90,7 +90,7 @@ pub fn infer_config(data: &[u8], scan: &ScanResult, arch: KernelArch) -> Result<
             } else {
                 val as u64
             }
-        }
+        },
     };
 
     config.kernel_base = first_addr;
