@@ -9,7 +9,7 @@
 use object::write::{Object, StandardSection, Symbol, SymbolSection};
 use object::{Architecture, BinaryFormat, Endianness, SymbolFlags, SymbolKind, SymbolScope};
 
-use crate::kallsyms::{KallsymsResult, KernelArch, KernelSymbol};
+use crate::kallsyms::{KallsymsResult, KernelArch, KernelSymbol, SymbolType};
 use crate::{Error, Result};
 
 // ============================================================
@@ -68,6 +68,8 @@ impl<'a> ElfBuilder<'a> {
             KernelArch::Arm64 => Ok((Architecture::Aarch64, Endianness::Little)),
             KernelArch::X86_64 => Ok((Architecture::X86_64, Endianness::Little)),
             KernelArch::Arm32 => Ok((Architecture::Arm, Endianness::Little)),
+            KernelArch::X86 => Ok((Architecture::I386, Endianness::Little)),
+            KernelArch::RiscV64 => Ok((Architecture::Riscv64, Endianness::Little)),
             KernelArch::Unknown => {
                 Err(Error::UnsupportedArch("Cannot determine ELF architecture".into()))
             }
@@ -81,19 +83,16 @@ impl<'a> ElfBuilder<'a> {
         sym: &KernelSymbol,
         section: object::write::SectionId,
     ) -> Result<()> {
-        let kind = if sym.is_code() {
+        let kind = if sym.sym_type.is_code() {
             SymbolKind::Text
-        } else if sym.is_data() {
+        } else if sym.sym_type.is_data() {
             SymbolKind::Data
         } else {
             SymbolKind::Unknown
         };
 
-        let scope = if sym.sym_type.is_uppercase() {
-            SymbolScope::Dynamic
-        } else {
-            SymbolScope::Compilation
-        };
+        let scope =
+            if sym.sym_type.is_global() { SymbolScope::Dynamic } else { SymbolScope::Compilation };
 
         // Calculate offset within section
         let offset = sym.address.saturating_sub(self.symbols.kernel_base) as u64;
@@ -104,7 +103,7 @@ impl<'a> ElfBuilder<'a> {
             size: sym.size.unwrap_or(0),
             kind,
             scope,
-            weak: sym.sym_type == 'W' || sym.sym_type == 'w',
+            weak: matches!(sym.sym_type, SymbolType::Weak | SymbolType::WeakLocal),
             section: SymbolSection::Section(section),
             flags: SymbolFlags::None,
         });

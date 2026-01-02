@@ -8,7 +8,7 @@
 
 use nom::{
     bytes::complete::{tag, take},
-    number::complete::{le_u32, le_u64},
+    number::complete::le_u32,
     IResult,
 };
 use serde::{Deserialize, Serialize};
@@ -38,10 +38,13 @@ pub const BOOT_MAGIC_SIZE: usize = 8;
 pub enum BootImageVersion {
     /// Legacy format (V0-V2).
     V0,
+    /// Traditional format V1.
     V1,
+    /// Traditional format V2.
     V2,
     /// Modern GKI format (V3+).
     V3,
+    /// GKI format V4.
     V4,
     /// Unknown or unsupported.
     Unknown(u32),
@@ -177,7 +180,7 @@ impl BootImage {
     // --------------------------------------------------------
 
     fn parse_android_header(data: &[u8]) -> Result<BootImageHeader> {
-        let (remaining, header) =
+        let (_remaining, header) =
             parse_boot_header_v0(data).map_err(|e| Error::ParseError(format!("{:?}", e)))?;
 
         // Calculate offsets based on page alignment
@@ -201,7 +204,7 @@ impl BootImage {
         })
     }
 
-    fn parse_vendor_header(data: &[u8]) -> Result<BootImageHeader> {
+    fn parse_vendor_header(_data: &[u8]) -> Result<BootImageHeader> {
         // V3/V4 vendor boot parsing - simplified for now
         todo!("Vendor boot image parsing not yet implemented")
     }
@@ -212,6 +215,7 @@ impl BootImage {
 // ============================================================
 
 /// Intermediate struct for nom parsing.
+#[allow(dead_code)]
 struct RawBootHeader {
     version: BootImageVersion,
     kernel_size: u32,

@@ -52,8 +52,7 @@ pub fn analyze_kernel(input_path: String) -> Result<AnalysisResult> {
     };
 
     // Find symbols
-    let finder = KallsymsFinder::new(&kernel_data);
-    let kallsyms = finder.find_symbols()?;
+    let kallsyms = KallsymsFinder::new(&kernel_data)?.into_result();
 
     // Build ELF
     let elf_bytes = ElfBuilder::new(&kernel_data, &kallsyms).build()?;

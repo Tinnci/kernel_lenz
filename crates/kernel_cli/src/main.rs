@@ -252,8 +252,7 @@ fn cmd_analyze(input: PathBuf, output: PathBuf, export_symbols: Option<PathBuf>)
 
     // Step 2: Find kallsyms
     pb.set_message("Searching for kallsyms...");
-    let finder = KallsymsFinder::new(&kernel_data);
-    let symbols = finder.find_symbols().context("Failed to recover symbols")?;
+    let symbols = KallsymsFinder::new(&kernel_data)?.into_result();
 
     pb.println(format!(
         "{} Found {} symbols (base: {:#x})",
@@ -294,8 +293,7 @@ fn cmd_symbols(input: PathBuf, filter: Option<String>, format: OutputFormat) -> 
     let data = std::fs::read(&input).context("Failed to read input")?;
     let decompressed = Decompressor::decompress(&data)?;
 
-    let finder = KallsymsFinder::new(&decompressed);
-    let result = finder.find_symbols()?;
+    let result = KallsymsFinder::new(&decompressed)?.into_result();
 
     let symbols: Vec<_> = result
         .symbols

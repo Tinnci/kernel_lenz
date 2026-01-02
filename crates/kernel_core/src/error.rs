@@ -14,7 +14,12 @@ pub enum Error {
 
     /// Magic number mismatch when parsing headers.
     #[error("Magic number mismatch: expected {expected}, found {found}")]
-    MagicMismatch { expected: String, found: String },
+    MagicMismatch {
+        /// The expected magic string.
+        expected: String,
+        /// The magic string found in the file.
+        found: String,
+    },
 
     /// Decompression failed.
     #[error("Decompression failed: {0}")]
@@ -34,7 +39,12 @@ pub enum Error {
 
     /// Symbol table parsing failed.
     #[error("Symbol table parse error at offset {offset:#x}: {message}")]
-    SymbolParseError { offset: usize, message: String },
+    SymbolParseError {
+        /// Offset where the error occurred.
+        offset: usize,
+        /// Description of the parse error.
+        message: String,
+    },
 
     /// ELF generation failed.
     #[error("ELF building error: {0}")]
@@ -51,7 +61,9 @@ pub enum Error {
     /// File not found or access denied.
     #[error("File access error for '{path}': {source}")]
     FileError {
+        /// The path to the file.
         path: String,
+        /// The underlying IO error.
         #[source]
         source: std::io::Error,
     },

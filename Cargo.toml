@@ -36,6 +36,8 @@ categories = ["command-line-utilities", "development-tools"]
 nom = "7.1"                   # Combinator-based binary parser
 byteorder = "1.5"             # Endianness handling
 memmap2 = "0.9"               # Memory-mapped file I/O for large images
+scroll = "0.12"               # Safe, zero-copy binary reading with bounds checks
+rayon = "1.10"                # Data parallelism for symbol recovery
 
 # --- Compression ---
 lz4_flex = "0.11"             # Pure Rust LZ4 (no C dependency!)
