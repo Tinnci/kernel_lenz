@@ -220,6 +220,17 @@ class AnalysisDashboard extends ConsumerWidget {
                         Icons.settings_applications,
                       ),
                     ),
+                    SizedBox(
+                      width: 400,
+                      height: 160,
+                      child: _buildResultCard(
+                        context,
+                        'ELF Dump',
+                        'Hex Viewer',
+                        Icons.settings_ethernet,
+                        onTap: () => _showHexViewer(context),
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -236,6 +247,15 @@ class AnalysisDashboard extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const SymbolListSheet(),
+    );
+  }
+
+  void _showHexViewer(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const HexViewerSheet(),
     );
   }
 
@@ -619,6 +639,220 @@ class _SortChip extends StatelessWidget {
               ? Theme.of(context).colorScheme.primary
               : Theme.of(context).colorScheme.outline.withAlpha(50),
         ),
+      ),
+    );
+  }
+}
+
+class HexViewerSheet extends ConsumerStatefulWidget {
+  const HexViewerSheet({super.key});
+
+  @override
+  ConsumerState<HexViewerSheet> createState() => _HexViewerSheetState();
+}
+
+class _HexViewerSheetState extends ConsumerState<HexViewerSheet> {
+  final int _linesPerBlock = 128;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(analysisControllerProvider);
+    final kernelSize = state.summary?.kernelSize.toInt() ?? 0;
+    final totalLines = (kernelSize / 16).ceil();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      builder: (_, scrollController) => GlassCard(
+        borderRadius: 24,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(50),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  Text(
+                    'Hex Explorer',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${(kernelSize / 1024 / 1024).toStringAsFixed(2)} MB total',
+                    style: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withAlpha(120),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: DefaultTextStyle(
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary.withAlpha(180),
+                ),
+                child: const Row(
+                  children: [
+                    SizedBox(width: 85, child: Text('OFFSET')),
+                    SizedBox(width: 20),
+                    Expanded(child: Text('HEX BYTES')),
+                    SizedBox(width: 150, child: Text('ASCII')),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                itemExtent: 28,
+                itemCount: totalLines,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemBuilder: (context, index) {
+                  final chunk = state.hexCache[index];
+
+                  if (chunk == null) {
+                    final startLine =
+                        (index ~/ _linesPerBlock) * _linesPerBlock;
+                    ref
+                        .read(analysisControllerProvider.notifier)
+                        .loadHexRange(startLine, _linesPerBlock);
+
+                    return const _HexLineLoading();
+                  }
+
+                  return _HexLine(index: index, chunk: chunk);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HexLine extends StatelessWidget {
+  final int index;
+  final HexChunk chunk;
+
+  const _HexLine({required this.index, required this.chunk});
+
+  @override
+  Widget build(BuildContext context) {
+    final offset = index * 16;
+    final bytes = chunk.content;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 85,
+            child: Text(
+              offset.toRadixString(16).padLeft(8, '0').toUpperCase(),
+              style: TextStyle(
+                fontFamily: 'monospace',
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Row(
+              children: List.generate(16, (i) {
+                if (i >= bytes.length) return const SizedBox(width: 28);
+                final b = bytes[i];
+                final hex = b.toRadixString(16).padLeft(2, '0').toUpperCase();
+
+                return Container(
+                  width: 28,
+                  margin: EdgeInsets.only(right: (i + 1) % 4 == 0 ? 8 : 2),
+                  child: Text(
+                    hex,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 13,
+                      color: b == 0
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withAlpha(40)
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          SizedBox(
+            width: 150,
+            child: Text(
+              String.fromCharCodes(
+                bytes.map((b) => (b >= 32 && b <= 126) ? b : 46),
+              ),
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.primary.withAlpha(150),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HexLineLoading extends StatelessWidget {
+  const _HexLineLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          Container(
+            width: 85,
+            height: 12,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(20),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Container(
+              height: 12,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(10),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

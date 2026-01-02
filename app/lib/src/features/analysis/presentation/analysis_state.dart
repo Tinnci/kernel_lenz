@@ -15,6 +15,7 @@ class AnalysisState {
   final String currentFilter;
   final SortColumn currentSort;
   final bool ascending;
+  final Map<int, HexChunk> hexCache;
   final String? error;
 
   const AnalysisState({
@@ -30,6 +31,7 @@ class AnalysisState {
     this.currentFilter = '',
     this.currentSort = SortColumn.address,
     this.ascending = true,
+    this.hexCache = const {},
     this.error,
   });
 
@@ -46,6 +48,7 @@ class AnalysisState {
     String? currentFilter,
     SortColumn? currentSort,
     bool? ascending,
+    Map<int, HexChunk>? hexCache,
     String? error,
   }) {
     return AnalysisState(
@@ -61,6 +64,7 @@ class AnalysisState {
       currentFilter: currentFilter ?? this.currentFilter,
       currentSort: currentSort ?? this.currentSort,
       ascending: ascending ?? this.ascending,
+      hexCache: hexCache ?? this.hexCache,
       error: error ?? this.error,
     );
   }

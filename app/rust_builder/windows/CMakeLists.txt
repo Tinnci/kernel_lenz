@@ -9,7 +9,16 @@ set(PROJECT_NAME "rust_lib_kernel_lens_app")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 include("../cargokit/cmake/cargokit.cmake")
-apply_cargokit(${PROJECT_NAME} ../../../crates/kernel_ffi kernel_ffi "")
+
+# WORKAROUND: Windows symlink issues with relative paths.
+# We compute the project root from CMAKE_SOURCE_DIR (which is app/windows),
+# then construct the absolute path to kernel_ffi.
+# CMAKE_SOURCE_DIR = .../app/windows
+# kernel_ffi is at .../crates/kernel_ffi (2 levels up from app, then into crates)
+get_filename_component(PROJECT_ROOT "${CMAKE_SOURCE_DIR}/../.." ABSOLUTE)
+set(KERNEL_FFI_ABS_PATH "${PROJECT_ROOT}/crates/kernel_ffi")
+
+apply_cargokit(${PROJECT_NAME} "${KERNEL_FFI_ABS_PATH}" kernel_ffi "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an

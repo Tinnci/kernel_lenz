@@ -160,6 +160,47 @@ class AnalysisController extends _$AnalysisController {
     }
   }
 
+  Future<void> loadHexRange(int startLine, int count) async {
+    final session = state.session;
+    if (session == null) return;
+
+    // Check if we already have the data to avoid double fetch
+    if (state.hexCache.containsKey(startLine)) return;
+
+    try {
+      final offset = BigInt.from(startLine * 16);
+      final length = BigInt.from(count * 16);
+
+      final chunk = await session.getHexChunk(offset: offset, length: length);
+
+      // Distribute bytes back into 16-byte lines in the cache
+      final Map<int, HexChunk> newCache = Map.from(state.hexCache);
+      final bytes = chunk.content;
+
+      for (int i = 0; i < count; i++) {
+        final lineOffset = i * 16;
+        if (lineOffset + 16 > bytes.length) break;
+
+        final lineBytes = bytes.sublist(lineOffset, lineOffset + 16);
+        final currentLineIndex = startLine + i;
+
+        newCache[currentLineIndex] = HexChunk(
+          content: lineBytes,
+          offset: BigInt.from(currentLineIndex * 16),
+          totalSize: chunk.totalSize,
+        );
+      }
+
+      state = state.copyWith(hexCache: newCache);
+    } catch (e) {
+      developer.log("Error loading hex range", error: e);
+    }
+  }
+
+  void clearHexCache() {
+    state = state.copyWith(hexCache: {});
+  }
+
   void reset() {
     state = const AnalysisState();
   }
