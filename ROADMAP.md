@@ -23,8 +23,11 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
 - [x] Flutter V2 integration via `flutter_rust_bridge`
 - [x] Desktop-first UI with Glassmorphism aesthetics
 - [ ] Real-time analysis progress visualization
-- [ ] Symbol search & filtering interface
+- [/] Symbol search & filtering interface (Backend logic implemented 🦀)
 - [ ] Integrated HEX viewer for kernel exploration
+- [x] **Stability & Build Hardening**: 
+    - [x] Cross-platform line-ending normalization (.gitattributes)
+    - [x] `xtask verify-paths` for auto-healing build scripts
 - [ ] **FFI V2 Upgrade (2026 Spec)**: 
     - [ ] `StreamSink` for streaming symbol tables
     - [x] **Zero-Copy**: Implement Rust-side sorting/filtering/search to minimize dart object creation
