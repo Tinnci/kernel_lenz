@@ -20,15 +20,15 @@ priority_themes: ["FFI Performance", "Interactive Visualization", "Stability"]
 - [x] Fuzz testing & 2026 Engineering Standards
 
 ## Phase 3: Flutter UI Integration (Ongoing 🚀)
-- [ ] Flutter V2 integration via `flutter_rust_bridge`
-- [ ] Desktop-first UI with Glassmorphism aesthetics
+- [x] Flutter V2 integration via `flutter_rust_bridge`
+- [x] Desktop-first UI with Glassmorphism aesthetics
 - [ ] Real-time analysis progress visualization
 - [ ] Symbol search & filtering interface
 - [ ] Integrated HEX viewer for kernel exploration
 - [ ] **FFI V2 Upgrade (2026 Spec)**: 
     - [ ] `StreamSink` for streaming symbol tables
-    - [ ] **Zero-Copy**: Implement Rust-side sorting/filtering/search to minimize dart object creation
-    - [ ] **xtask doctor**: Automated environment validation (NDK, LLVM, Flutter)
+    - [x] **Zero-Copy**: Implement Rust-side sorting/filtering/search to minimize dart object creation
+    - [x] **xtask doctor**: Automated environment validation (NDK, LLVM, Flutter)
     - [ ] **Binary Diet**: CI integration with `cargo-bloat` & `panic="abort"` optimization
 
 ## Phase 4: Advanced Tools (Planned 📅)
