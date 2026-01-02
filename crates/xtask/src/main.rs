@@ -96,6 +96,9 @@ enum Commands {
         #[arg(short, long, default_value = "60")]
         max_time: u32,
     },
+
+    /// Check development environment
+    Doctor,
 }
 
 // ============================================================
@@ -123,12 +126,56 @@ fn main() -> Result<()> {
         Commands::IntegrateBridge => integrate_bridge(&sh),
         Commands::Codegen => run_codegen(&sh),
         Commands::Fuzz { target, max_time } => run_fuzz(&sh, &target, max_time),
+        Commands::Doctor => run_doctor(&sh),
     }
 }
 
 // ============================================================
 // Task Implementations
 // ============================================================
+
+fn run_doctor(sh: &Shell) -> Result<()> {
+    println!("🩺 Checking development environment...");
+    println!();
+
+    let mut tools = vec![
+        ("cargo", "Rust toolchain", "https://rustup.rs/"),
+        ("flutter", "Flutter SDK", "https://docs.flutter.dev/get-started/install"),
+        ("flutter_rust_bridge_codegen", "FRB Codegen", "cargo install flutter_rust_bridge_codegen"),
+        ("cmake", "CMake", "https://cmake.org/download/"),
+    ];
+
+    if cfg!(windows) {
+        // precise fix for Windows where flutter is a .bat
+        tools[1].0 = "flutter.bat"; 
+    }
+
+    let mut all_ok = true;
+
+    for (cmd_name, nice_name, install_hint) in tools {
+        print!("checking {}... ", nice_name);
+        match cmd!(sh, "{cmd_name} --version").quiet().read() {
+            Ok(version) => {
+                let v = version.lines().next().unwrap_or("unknown");
+                println!("✅ {}", v);
+            }
+            Err(_) => {
+                println!("❌ Not found");
+                println!("   👉 Please install via: {}", install_hint);
+                all_ok = false;
+            }
+        }
+    }
+
+    println!();
+    if all_ok {
+        println!("✨ Environment matches 2026 standards. Ready to build!");
+    } else {
+        println!("⚠️  Some tools are missing. Please fix the issues above.");
+    }
+    
+    Ok(())
+}
 
 fn build_cli(sh: &Shell, release: bool) -> Result<()> {
     println!("🔨 Building kernel-lens CLI...");
