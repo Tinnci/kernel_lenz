@@ -49,3 +49,9 @@ desktop.ini
 # --- Secrets ---
 .env
 .env.local
+
+# --- Fuzz Testing ---
+crates/kernel_core/fuzz/target/
+crates/kernel_core/fuzz/artifacts/
+crates/kernel_core/fuzz/corpus/**/crash-*
+crates/kernel_core/fuzz/corpus/**/timeout-*

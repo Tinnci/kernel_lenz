@@ -79,6 +79,17 @@ enum Commands {
 
     /// Initialize Flutter project (first-time setup)
     InitFlutter,
+
+    /// Run fuzz tests (requires nightly and cargo-fuzz)
+    Fuzz {
+        /// Target to fuzz (kallsyms_scanner, kallsyms_decoder, boot_image, decompressor)
+        #[arg(value_name = "TARGET")]
+        target: String,
+
+        /// Maximum total time of a single run (seconds)
+        #[arg(short, long, default_value = "60")]
+        max_time: u32,
+    },
 }
 
 // ============================================================
@@ -103,6 +114,7 @@ fn main() -> Result<()> {
         Commands::Clean => clean(&sh),
         Commands::Doc { open } => build_doc(&sh, open),
         Commands::InitFlutter => init_flutter(&sh),
+        Commands::Fuzz { target, max_time } => run_fuzz(&sh, &target, max_time),
     }
 }
 
@@ -278,4 +290,30 @@ fn project_root() -> Result<PathBuf> {
         .context("Could not find project root")?;
 
     Ok(root.to_path_buf())
+}
+
+fn run_fuzz(sh: &Shell, target: &str, max_time: u32) -> Result<()> {
+    println!("🔥 Running fuzz test: {}", target);
+    println!("   Max time: {}s", max_time);
+
+    // Validate target name
+    let valid_targets =
+        ["fuzz_kallsyms_scanner", "fuzz_kallsyms_decoder", "fuzz_boot_image", "fuzz_decompressor"];
+    let target_name =
+        if target.starts_with("fuzz_") { target.to_string() } else { format!("fuzz_{}", target) };
+
+    if !valid_targets.contains(&target_name.as_str()) {
+        bail!("Unknown fuzz target: {}\nValid targets: {:?}", target, valid_targets);
+    }
+
+    // Change to fuzz directory
+    let fuzz_dir = project_root()?.join("crates").join("kernel_core").join("fuzz");
+    sh.change_dir(&fuzz_dir);
+
+    // Run cargo fuzz (requires nightly)
+    let max_time_str = max_time.to_string();
+    cmd!(sh, "cargo +nightly fuzz run {target_name} -- -max_total_time={max_time_str}").run()?;
+
+    println!("✅ Fuzz test completed");
+    Ok(())
 }

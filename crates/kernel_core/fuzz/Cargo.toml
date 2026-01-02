@@ -1,0 +1,48 @@
+[package]
+name = "kernel_core-fuzz"
+version = "0.1.0"
+authors = ["KernelLens Contributors"]
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[dependencies.kernel_core]
+path = ".."
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "fuzz_kallsyms_scanner"
+path = "fuzz_targets/fuzz_kallsyms_scanner.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_kallsyms_decoder"
+path = "fuzz_targets/fuzz_kallsyms_decoder.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_boot_image"
+path = "fuzz_targets/fuzz_boot_image.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_decompressor"
+path = "fuzz_targets/fuzz_decompressor.rs"
+test = false
+doc = false
+bench = false
