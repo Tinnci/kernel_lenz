@@ -469,17 +469,42 @@ fn find_num_symbols_and_names(
     
     println!("[Rust] Searching for num_symbols in range [{}, {}] around markers@0x{:x}", min_syms, max_syms, markers_offset);
 
-    // Strategy 1: num_symbols is right before names, and names is right before markers.
-    // names_offset = markers_offset - (last_marker_val + last_block_size)
-    // We try different last_block_size values (usually small).
-    // Note: for large kernels, the last block could be quite large.
-    for last_block_size in (0..32768).step_by(1) {
-        let names_offset_guess = markers_offset.saturating_sub(last_marker_val as usize + last_block_size);
-        if names_offset_guess < 8 { continue; }
+    // =========================================================================================
+    // Strategy 3: Layout-Aware / Marker-Guided Discovery (Most Robust)
+    // =========================================================================================
+    // We know where markers are. We know the last marker value (which is roughly the size of names table).
+    // So: names_offset ≈ markers_offset - last_marker_val
+    // And num_symbols is usually immediately preceding names_offset (or separated by addresses).
+    
+    // Let's deduce likely names_offset candidates first.
+    let estimated_names_size = last_marker_val as usize;
+    let base_names_offset = markers_offset.saturating_sub(estimated_names_size);
+    
+    // We'll search for num_symbols in a window BEFORE the estimated names offset.
+    // The window covers potential padding and the possibility of addresses table being in between.
+    println!("[Rust] Strategy 3: derived base_names_offset=0x{:x} from last_marker={}", base_names_offset, last_marker_val);
 
-        for size in [8, 4] {
-            let pos = names_offset_guess.saturating_sub(size);
-            let val: u64 = if big_endian {
+    // Candidates for num_symbols position:
+    // 1. Immediately before names ( [num_symbols] [names] )
+    // 2. Before addresses ( [num_symbols] [addresses] [names] )
+    // 3. Just brute force scan a reasonable range around the base_names_offset.
+
+    let scan_start = base_names_offset.saturating_sub(16 * 1024 * 1024); // Look back 16MB (generous)
+    let scan_end = base_names_offset.saturating_add(4096);   // Look forward a bit (padding)
+    let mut best_candidate: Option<(usize, usize, usize, usize)> = None; // (pos, num, names_off, score)
+
+    let mut pos = scan_end; 
+    while pos >= scan_start {
+        // Alignment optimization: num_symbols is typically 4-byte or 8-byte aligned
+        if pos % 4 != 0 {
+            pos -= 1;
+            continue;
+        }
+
+        for size in [4, 8] {
+            if pos + size > data.len() { continue; }
+            
+            let val = if big_endian {
                 if size == 8 { data.pread_with::<u64>(pos, BE).unwrap_or(0) }
                 else { data.pread_with::<u32>(pos, BE).unwrap_or(0) as u64 }
             } else {
@@ -488,29 +513,80 @@ fn find_num_symbols_and_names(
             };
 
             if val >= min_syms as u64 && val <= max_syms as u64 {
-                // Validate names_offset by checking if names[0] is a valid length
-                let names_offset = pos + size;
-                let first_len: u8 = data.pread_with(names_offset, LE).unwrap_or(0);
-                if first_len > 0 && first_len < 128 {
-                    // Use DP validation for extra confidence
-                    let (valid_count, is_valid) = validate_names_dp(data, names_offset, val as usize);
+                let num_syms = val as usize;
+                
+                // Hypothesis A: names start immediately after num_symbols
+                let names_off_a = pos + size;
+                
+                // Hypothesis B: addresses are between num_symbols and names
+                // This requires knowing pointer size. Let's try both 4 and 8.
+                let names_off_b4 = pos + size + num_syms * 4;
+                let names_off_b8 = pos + size + num_syms * 8;
+                
+                // Hypothesis C: names are at base_names_offset (derived from markers)
+                // We assume there might be some padding/alignment between num_symbols and names.
+                // Or padding between addresses and names.
+                
+                let candidates = [names_off_a, names_off_b4, names_off_b8];
+                
+                for &names_off in &candidates {
+                    // Quick bounds check
+                    if names_off >= data.len() || names_off < 8 { continue; }
+                    
+                    // Does this names_offset make sense with markers?
+                    // The distance (markers_offset - names_offset) should be close to last_marker_val.
+                    // Allow for some padding (e.g., 0-4096 bytes).
+                    let check_dist = markers_offset.saturating_sub(names_off);
+                    // last_marker_val IS the offset of the start of the last block relative to names_offset.
+                    // So real size of names table is last_marker_val + last_block_len.
+                    // Therefore markers_offset - names_offset should be >= last_marker_val.
+                    
+                    if check_dist < estimated_names_size { 
+                        // names_offset is too close to markers, impossible given the last marker value.
+                        continue; 
+                    }
+                    
+                    // Check if the gap is reasonable (e.g., < 64KB padding/alignment + last block)
+                    if check_dist > estimated_names_size + 65536 {
+                        continue; // Too far away
+                    }
+                    
+                    // DP Validation
+                    // Only run expensive DP if we pass the distance check
+                    let (valid_count, is_valid) = validate_names_dp(data, names_off, num_syms);
+                    
                     if is_valid {
-                        println!("[Rust] Found num_symbols {} at 0x{:x} via Strategy 1 (DP validated: {} entries)", val, pos, valid_count);
-                        return Ok((pos, val as usize, names_offset));
+                        // Found a strong candidate!
+                        // Rank by valid count
+                        if best_candidate.is_none() || valid_count > best_candidate.unwrap().3 {
+                            println!("[Rust] Strategy 3 Candidate: num={} @ 0x{:x}, names @ 0x{:x}, score={}", 
+                                     num_syms, pos, names_off, valid_count);
+                            best_candidate = Some((pos, num_syms, names_off, valid_count));
+                        }
                     }
                 }
             }
         }
+        
+        if pos < 4 { break; }
+        pos -= 4; // Skip 4 bytes at a time for speed, since we align check.
+    }
+    
+    if let Some((pos, num, names, score)) = best_candidate {
+        println!("[Rust] Selected best candidate: num={} @ 0x{:x}, names @ 0x{:x} (score={})", num, pos, names, score);
+        return Ok((pos, num, names));
     }
 
-    // Strategy 2: Brute force scan backwards from markers_offset (up to 4MB)
-    println!("[Rust] Trying Strategy 2 (Brute force) for num_symbols");
+    // Fallback: If Strategy 3 failed, try the old Brute Force (Strategy 2) but with the relaxed validation
+    // This is useful if markers logic is somehow flawed or layout is very weird.
+    println!("[Rust] Strategy 3 failed. Trying fallback Strategy 2 (Brute Force)...");
+    
     let scan_limit = markers_offset.saturating_sub(4 * 1024 * 1024);
     let mut pos = markers_offset.saturating_sub(4);
     while pos >= scan_limit {
         for size in [8, 4] {
             if pos + size > data.len() { continue; }
-            let val: u64 = if big_endian {
+            let val = if big_endian {
                 if size == 8 { data.pread_with::<u64>(pos, BE).unwrap_or(0) }
                 else { data.pread_with::<u32>(pos, BE).unwrap_or(0) as u64 }
             } else {
@@ -518,24 +594,22 @@ fn find_num_symbols_and_names(
                 else { data.pread_with::<u32>(pos, LE).unwrap_or(0) as u64 }
             };
 
-            // Be more lenient with the range in Strategy 2
-            if val > (min_syms as u64).saturating_sub(1024) && val < (max_syms as u64).saturating_add(1024) {
+            if val >= min_syms as u64 && val <= max_syms as u64 {
                 let names_offset = pos + size;
-                let first_len: u8 = data.pread_with(names_offset, LE).unwrap_or(0);
-                if first_len > 0 && first_len < 128 {
-                    // Use DP validation for extra confidence
+                 // Quick check
+                if names_offset < data.len() && data[names_offset] > 0 && data[names_offset] < 128 {
                     let (valid_count, is_valid) = validate_names_dp(data, names_offset, val as usize);
                     if is_valid {
-                        println!("[Rust] Found num_symbols {} at 0x{:x} via Strategy 2 (DP validated: {} entries)", val, pos, valid_count);
+                        println!("[Rust] Found num_symbols {} at 0x{:x} via Strategy 2 fallback", val, pos);
                         return Ok((pos, val as usize, names_offset));
                     }
                 }
             }
         }
         if pos < 1 { break; }
-        pos -= 1; // Byte-by-byte scan for maximum robustness
+        pos -= 1;
     }
-    
+
     println!("[Rust] Failed to find num_symbols anchor. Marker count: {}, Last marker val: {}", marker_count, last_marker_val);
     Err(KallsymsError::ParseError("Could not find num_symbols anchor".to_string()).into())
 }
