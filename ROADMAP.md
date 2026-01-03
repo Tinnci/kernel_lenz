@@ -48,14 +48,14 @@ last_updated: 2026-01-03
     - [ ] Dynamic section mapping for non-standard kernels
     - [ ] Symbol table injection for external tool compatibility
 - [ ] **Kernel Re-packaging**: Minimalist rebuild for rapid testing
-- [ ] **Extended Kallsyms Support**:
+- [x] **Extended Kallsyms Support**:
+    - [x] `--override-relative` CLI option (force absolute address mode)
+    - [x] Dynamic programming symbol names validation
     - [ ] OpenWRT uncompressed kallsyms format
-    - [ ] `--override-relative-base` CLI option
-    - [ ] Dynamic programming symbol count validation
 
 ## Phase 5: Ecosystem & Strategic (Strategic 🌐)
 - [ ] Plugin system for vendor-specific offsets
 - [ ] Cloud-based symbol signature sharing
 - [ ] Multi-arch support expansion (RISC-V, x86_64)
-- [ ] Adaptive/Responsive UI for tablets and foldables
+- [x] Adaptive/Responsive UI for tablets and foldables
 
