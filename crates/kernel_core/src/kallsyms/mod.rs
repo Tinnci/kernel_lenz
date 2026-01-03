@@ -44,6 +44,7 @@ mod types;
 
 // Re-export public API
 pub use decoder::SymbolIterator;
+pub use scanner::ScanOptions;
 pub use traits::AddressParser;
 pub use types::{
     KallsymsConfig, KallsymsError, KallsymsResult, KernelArch, KernelSymbol, SymbolType,
@@ -104,14 +105,26 @@ impl<'a> KallsymsFinder<'a> {
     ///
     /// Returns an error if kallsyms tables cannot be found or parsed.
     pub fn new(data: &'a [u8]) -> Result<Self> {
+        Self::with_options(data, &ScanOptions::default())
+    }
+
+    /// Create a new finder with custom scan options.
+    ///
+    /// Use this when you need to override automatic detection, e.g.:
+    ///
+    /// ```rust,ignore
+    /// let options = ScanOptions { override_relative: true };
+    /// let finder = KallsymsFinder::with_options(&kernel_data, &options)?;
+    /// ```
+    pub fn with_options(data: &'a [u8], options: &ScanOptions) -> Result<Self> {
         tracing::info!("Starting kallsyms analysis on {} byte kernel", data.len());
 
         // Step 1: Detect kernel architecture
         let arch = scanner::detect_architecture(data);
         tracing::debug!("Detected architecture: {:?}", arch);
 
-        // Step 2: Scan for kallsyms tables
-        let scan_result = scanner::scan_for_kallsyms(data, arch)?;
+        // Step 2: Scan for kallsyms tables (with options)
+        let scan_result = scanner::scan_for_kallsyms_with_options(data, arch, options)?;
         tracing::debug!(
             "Found kallsyms tables: addresses@{:#x}, names@{:#x}, tokens@{:#x}, markers@{:#x}",
             scan_result.addresses_offset,

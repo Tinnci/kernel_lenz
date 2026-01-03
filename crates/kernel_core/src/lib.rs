@@ -45,4 +45,4 @@ pub use boot_image::BootImage;
 pub use compression::Decompressor;
 pub use elf_builder::ElfBuilder;
 pub use error::{Error, Result};
-pub use kallsyms::KallsymsFinder;
+pub use kallsyms::{KallsymsFinder, ScanOptions};

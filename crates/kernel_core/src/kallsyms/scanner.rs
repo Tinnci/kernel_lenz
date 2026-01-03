@@ -30,6 +30,15 @@ pub struct ScanResult {
     pub relative_base_address: Option<u64>,
 }
 
+/// Options for kallsyms scanning.
+#[derive(Debug, Clone, Default)]
+pub struct ScanOptions {
+    /// Force treating offsets as absolute addresses, ignoring relative base detection.
+    /// Useful when automatic detection incorrectly identifies a kernel as using relative addressing.
+    /// (Equivalent to vmlinux-to-elf's `--override-relative` flag)
+    pub override_relative: bool,
+}
+
 /// Detect kernel architecture using function prologue patterns.
 pub fn detect_architecture(data: &[u8]) -> KernelArch {
     if data.len() > 0x40 && &data[0x38..0x3C] == b"ARM\x64" {
@@ -81,8 +90,26 @@ pub fn detect_architecture(data: &[u8]) -> KernelArch {
 }
 
 /// Perform a robust scan to find kallsyms table offsets.
+/// 
+/// This is a convenience wrapper around [`scan_for_kallsyms_with_options`] with default options.
+#[allow(dead_code)]
 pub fn scan_for_kallsyms(data: &[u8], hint_arch: KernelArch) -> Result<ScanResult> {
+    scan_for_kallsyms_with_options(data, hint_arch, &ScanOptions::default())
+}
+
+/// Perform a robust scan with configurable options.
+/// 
+/// Use this variant when you need to override automatic detection behavior,
+/// e.g., forcing absolute address mode with `override_relative: true`.
+pub fn scan_for_kallsyms_with_options(
+    data: &[u8],
+    hint_arch: KernelArch,
+    options: &ScanOptions,
+) -> Result<ScanResult> {
     tracing::info!("Starting robust kallsyms scanning (Anchor flow)...");
+    if options.override_relative {
+        tracing::info!("[!] Override mode: forcing absolute addresses");
+    }
 
     // 1 & 2. Find Token Table and Index (The Anchors)
     let (token_table_offset, token_index_offset, big_endian) = find_token_anchors(data)?;
@@ -101,6 +128,14 @@ pub fn scan_for_kallsyms(data: &[u8], hint_arch: KernelArch) -> Result<ScanResul
     let (addresses_offset, relative_base, final_arch) =
         find_addresses_table(data, num_syms_offset, num_symbols, hint_arch, big_endian)?;
 
+    // Apply override if requested
+    let final_relative_base = if options.override_relative {
+        tracing::info!("[!] Ignoring relative_base due to --override-relative");
+        None
+    } else {
+        relative_base
+    };
+
     Ok(ScanResult {
         addresses_offset,
         names_offset,
@@ -110,7 +145,7 @@ pub fn scan_for_kallsyms(data: &[u8], hint_arch: KernelArch) -> Result<ScanResul
         num_symbols,
         arch: final_arch,
         big_endian,
-        relative_base_address: relative_base,
+        relative_base_address: final_relative_base,
     })
 }
 

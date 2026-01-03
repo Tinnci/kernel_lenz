@@ -11,7 +11,7 @@ use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-use kernel_core::{BootImage, Decompressor, ElfBuilder, KallsymsFinder};
+use kernel_core::{BootImage, Decompressor, ElfBuilder, KallsymsFinder, ScanOptions};
 
 // ============================================================
 // CLI Argument Definitions
@@ -93,6 +93,11 @@ enum Commands {
         /// Also export symbols as JSON
         #[arg(long)]
         export_symbols: Option<PathBuf>,
+
+        /// Force treating symbol offsets as absolute addresses, ignoring relative base detection
+        /// (use when automatic detection fails)
+        #[arg(long)]
+        override_relative: bool,
     },
 
     /// List recovered symbols from a kernel
@@ -108,6 +113,10 @@ enum Commands {
         /// Output format (text, json)
         #[arg(short = 'F', long, default_value = "text")]
         format: OutputFormat,
+
+        /// Force treating symbol offsets as absolute addresses
+        #[arg(long)]
+        override_relative: bool,
     },
 }
 
@@ -133,10 +142,12 @@ fn main() -> Result<()> {
         Commands::Extract { input, kernel, ramdisk, decompress } => {
             cmd_extract(input, kernel, ramdisk, decompress)
         },
-        Commands::Analyze { input, output, export_symbols } => {
-            cmd_analyze(input, output, export_symbols)
+        Commands::Analyze { input, output, export_symbols, override_relative } => {
+            cmd_analyze(input, output, export_symbols, override_relative)
         },
-        Commands::Symbols { input, filter, format } => cmd_symbols(input, filter, format),
+        Commands::Symbols { input, filter, format, override_relative } => {
+            cmd_symbols(input, filter, format, override_relative)
+        },
     }
 }
 
@@ -228,7 +239,7 @@ fn cmd_extract(
     Ok(())
 }
 
-fn cmd_analyze(input: PathBuf, output: PathBuf, export_symbols: Option<PathBuf>) -> Result<()> {
+fn cmd_analyze(input: PathBuf, output: PathBuf, export_symbols: Option<PathBuf>, override_relative: bool) -> Result<()> {
     let pb = create_progress_bar("Analyzing");
 
     // Step 1: Load and parse input
@@ -250,9 +261,10 @@ fn cmd_analyze(input: PathBuf, output: PathBuf, export_symbols: Option<PathBuf>)
 
     pb.println(format!("{} Kernel size: {} bytes", style("→").blue(), kernel_data.len()));
 
-    // Step 2: Find kallsyms
+    // Step 2: Find kallsyms (with options)
     pb.set_message("Searching for kallsyms...");
-    let symbols = KallsymsFinder::new(&kernel_data)?.into_result();
+    let options = ScanOptions { override_relative };
+    let symbols = KallsymsFinder::with_options(&kernel_data, &options)?.into_result();
 
     pb.println(format!(
         "{} Found {} symbols (base: {:#x})",
@@ -289,11 +301,12 @@ fn cmd_analyze(input: PathBuf, output: PathBuf, export_symbols: Option<PathBuf>)
     Ok(())
 }
 
-fn cmd_symbols(input: PathBuf, filter: Option<String>, format: OutputFormat) -> Result<()> {
+fn cmd_symbols(input: PathBuf, filter: Option<String>, format: OutputFormat, override_relative: bool) -> Result<()> {
     let data = std::fs::read(&input).context("Failed to read input")?;
     let decompressed = Decompressor::decompress(&data)?;
 
-    let result = KallsymsFinder::new(&decompressed)?.into_result();
+    let options = ScanOptions { override_relative };
+    let result = KallsymsFinder::with_options(&decompressed, &options)?.into_result();
 
     let symbols: Vec<_> = result
         .symbols
