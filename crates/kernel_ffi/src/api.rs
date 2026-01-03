@@ -89,13 +89,16 @@ pub fn start_analysis(
     input_path: String,
     sink: crate::frb_generated::StreamSink<ProgressUpdate>,
 ) -> Result<()> {
+    println!("[Rust] start_analysis called for {}", input_path);
+    
     sink.add(ProgressUpdate {
         step: "Reading file...".to_string(),
         progress: 0.05,
         summary: None,
         session: None,
     })
-    .unwrap();
+    .map_err(|e| anyhow::anyhow!("Sink error: {:?}", e))?;
+
     let raw_data = std::fs::read(&input_path)?;
 
     sink.add(ProgressUpdate {
@@ -104,7 +107,8 @@ pub fn start_analysis(
         summary: None,
         session: None,
     })
-    .unwrap();
+    .map_err(|e| anyhow::anyhow!("Sink error: {:?}", e))?;
+
     let kernel_data = if raw_data.starts_with(b"ANDROID!") {
         let boot_img = BootImage::from_bytes(raw_data)?;
         let kernel = boot_img.extract_kernel()?;
@@ -119,10 +123,17 @@ pub fn start_analysis(
         summary: None,
         session: None,
     })
-    .unwrap();
-    tracing::info!("Starting KallsymsFinder scanning...");
-    let kallsyms = KallsymsFinder::new(&kernel_data)?.into_result();
-    tracing::info!("Found {} symbols across kernel", kallsyms.symbol_count);
+    .map_err(|e| anyhow::anyhow!("Sink error: {:?}", e))?;
+
+    println!("[Rust] Starting KallsymsFinder scanning...");
+    let kallsyms = match KallsymsFinder::new(&kernel_data) {
+        Ok(f) => f.into_result(),
+        Err(e) => {
+            println!("[Rust] KallsymsFinder failed: {}", e);
+            return Err(e.into());
+        }
+    };
+    println!("[Rust] Found {} symbols across kernel", kallsyms.symbol_count);
 
     let early_summary = AnalysisSummary {
         kernel_size: kernel_data.len(),
@@ -137,10 +148,11 @@ pub fn start_analysis(
         summary: Some(early_summary.clone()),
         session: None,
     })
-    .unwrap();
-    tracing::info!("Building ELF builder for {:?} arch", kallsyms.arch);
+    .map_err(|e| anyhow::anyhow!("Sink error: {:?}", e))?;
+
+    println!("[Rust] Building ELF builder for {:?} arch", kallsyms.arch);
     let elf_bytes = ElfBuilder::new(&kernel_data, &kallsyms).build()?;
-    tracing::info!("ELF reconstruction complete, size: {} bytes", elf_bytes.len());
+    println!("[Rust] ELF reconstruction complete, size: {} bytes", elf_bytes.len());
 
     sink.add(ProgressUpdate {
         step: "Finalizing...".to_string(),
@@ -148,7 +160,8 @@ pub fn start_analysis(
         summary: Some(early_summary.clone()),
         session: None,
     })
-    .unwrap();
+    .map_err(|e| anyhow::anyhow!("Sink error: {:?}", e))?;
+
     let symbols: Vec<FrbKernelSymbol> = kallsyms
         .symbols
         .into_iter()
@@ -172,8 +185,9 @@ pub fn start_analysis(
         summary: Some(session.summary.clone()),
         session: Some(session),
     })
-    .unwrap();
+    .map_err(|e| anyhow::anyhow!("Sink error: {:?}", e))?;
 
+    println!("[Rust] start_analysis finished successfully");
     Ok(())
 }
 

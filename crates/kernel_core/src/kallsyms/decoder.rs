@@ -99,6 +99,25 @@ pub fn decode_symbol_name(
     }
 
     let len = data[current_pos] as usize;
+
+    // Guard: Empty symbol names are invalid
+    if len == 0 {
+        return Err(KallsymsError::InvalidSymbolName {
+            index,
+            reason: "Symbol has zero-length name".to_string(),
+        }
+        .into());
+    }
+
+    // Guard: Ensure we have enough data
+    if current_pos + 1 + len > data.len() {
+        return Err(KallsymsError::UnexpectedEof {
+            offset: current_pos + 1,
+            needed: len,
+        }
+        .into());
+    }
+
     let name_data = &data[current_pos + 1..current_pos + 1 + len];
 
     let mut expanded_name = String::with_capacity(64);
@@ -155,6 +174,21 @@ impl<'a> Iterator for SymbolIterator<'a> {
 
         let address = self.addresses[self.current_index];
         let len = self.data[self.current_names_ptr] as usize;
+
+        // Guard: Skip symbols with zero-length names (corrupted data)
+        if len == 0 {
+            self.current_index += 1;
+            self.current_names_ptr += 1;
+            // Recursively try the next symbol
+            return self.next();
+        }
+
+        // Guard: Ensure we have enough data for this symbol's name
+        if self.current_names_ptr + 1 + len > self.data.len() {
+            // Data is truncated, stop iteration
+            return None;
+        }
+
         let name_data = &self.data[self.current_names_ptr + 1..self.current_names_ptr + 1 + len];
 
         let mut name = String::with_capacity(64);

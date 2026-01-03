@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:kernel_lens_app/src/features/analysis/domain/failure_context.dart';
 import 'package:kernel_lens_app/src/rust/api.dart';
@@ -39,31 +40,41 @@ class AnalysisController extends _$AnalysisController {
     );
 
     try {
+      AppLogger.d('Starting analysis stream...');
       final stream = startAnalysis(inputPath: path);
+      final completer = Completer<void>();
 
-      // 2026 Best Practice: Defensive stream listening
       stream.listen(
         (update) async {
+          AppLogger.d('Stream Update: ${update.step} (${(update.progress * 100).toStringAsFixed(1)}%)');
+          
           if (update.session != null) {
             final session = update.session!;
-            final symbols = await session.querySymbols(
-              filter: "",
-              sortBy: SortColumn.address,
-              ascending: true,
-              page: BigInt.zero,
-              pageSize: BigInt.from(100),
-            );
+            AppLogger.i('Session received, querying initial symbols...');
+            
+            try {
+              final symbols = await session.querySymbols(
+                filter: "",
+                sortBy: SortColumn.address,
+                ascending: true,
+                page: BigInt.zero,
+                pageSize: BigInt.from(100),
+              );
 
-            state = state.copyWith(
-              status: AnalysisStatus.success,
-              currentStep: 'Analysis Complete',
-              progress: 1.0,
-              session: session,
-              summary: session.summary,
-              visibleSymbols: symbols,
-              currentPage: 0,
-              hasMore: symbols.length >= 100,
-            );
+              state = state.copyWith(
+                status: AnalysisStatus.success,
+                currentStep: 'Analysis Complete',
+                progress: 1.0,
+                session: session,
+                summary: session.summary,
+                visibleSymbols: symbols,
+                currentPage: 0,
+                hasMore: symbols.length >= 100,
+              );
+            } catch (e, stack) {
+              AppLogger.e('Initial symbol query failed', e, stack);
+              if (!completer.isCompleted) completer.completeError(e, stack);
+            }
           } else {
             state = state.copyWith(
               currentStep: update.step,
@@ -72,22 +83,25 @@ class AnalysisController extends _$AnalysisController {
             );
           }
         },
-        onError: (error, stack) {
-          AppLogger.e('FFI Logic Failure', error, stack);
-          state = state.copyWith(
-            status: AnalysisStatus.failure,
-            error: _mapError(error.toString()),
-            progress: 0.0,
-          );
+        onError: (e, stack) {
+          AppLogger.e('Stream onError caught', e, stack);
+          if (!completer.isCompleted) completer.completeError(e, stack);
         },
-        onDone: () => AppLogger.d('Analysis stream closed.'),
+        onDone: () {
+          AppLogger.d('Stream onDone reached');
+          if (!completer.isCompleted) completer.complete();
+        },
         cancelOnError: true,
       );
+
+      await completer.future;
+      AppLogger.d('Analysis pipeline finished successfully.');
     } catch (e, stack) {
-      AppLogger.e('FFI Startup Crash', e, stack);
+      AppLogger.e('Analysis Pipeline Failure', e, stack);
       state = state.copyWith(
         status: AnalysisStatus.failure,
         error: _mapError(e.toString()),
+        progress: 0.0,
       );
     }
   }

@@ -83,12 +83,25 @@ impl<'a> ElfBuilder<'a> {
         sym: &KernelSymbol,
         section: object::write::SectionId,
     ) -> Result<()> {
+        // Guard: Skip symbols with obviously corrupted names
+        // - Contains null bytes
+        // - Contains non-printable characters (except common ones)
+        // - Name is suspiciously repetitive (e.g., "tltltltl")
+        if sym.name.is_empty()
+            || sym.name.bytes().any(|b| b == 0 || b < 0x20 && b != b'\t')
+            || Self::is_repetitive_garbage(&sym.name)
+        {
+            tracing::warn!("Skipping corrupted symbol: {:?}", &sym.name.chars().take(50).collect::<String>());
+            return Ok(());
+        }
+
         let kind = if sym.sym_type.is_code() {
             SymbolKind::Text
         } else if sym.sym_type.is_data() {
             SymbolKind::Data
         } else {
-            SymbolKind::Unknown
+            // Use Label instead of Unknown to avoid `object` crate errors
+            SymbolKind::Label
         };
 
         let scope =
@@ -109,6 +122,27 @@ impl<'a> ElfBuilder<'a> {
         });
 
         Ok(())
+    }
+
+    /// Detect repetitive garbage patterns like "tltltltl" or "caltcaltcalt"
+    fn is_repetitive_garbage(name: &str) -> bool {
+        if name.len() < 8 {
+            return false;
+        }
+
+        // Check for 2-char or 3-char repeating patterns
+        for pattern_len in 2..=3 {
+            if name.len() >= pattern_len * 3 {
+                let pattern = &name[..pattern_len];
+                let repeat_count = name.matches(pattern).count();
+                // If pattern repeats more than 40% of possible times, it's garbage
+                if repeat_count > (name.len() / pattern_len) * 2 / 5 {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 }
 

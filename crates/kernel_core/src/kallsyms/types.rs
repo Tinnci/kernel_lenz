@@ -72,6 +72,15 @@ pub enum KallsymsError {
         index: usize,
     },
 
+    /// Invalid symbol name encountered.
+    #[error("Invalid symbol name at index {index}: {reason}")]
+    InvalidSymbolName {
+        /// Symbol index.
+        index: usize,
+        /// Reason for invalidity.
+        reason: String,
+    },
+
     /// Generic parse error.
     #[error("Parse error: {0}")]
     ParseError(String),
