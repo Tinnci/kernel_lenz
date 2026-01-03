@@ -30,6 +30,13 @@ class KernelLensApp extends ConsumerWidget {
 
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
 
+/// Responsive breakpoints following Material Design 3 guidelines
+class Breakpoints {
+  static const double mobile = 600; // Below: use BottomNavigation
+  static const double tablet = 900; // Below: use compact NavigationRail
+  static const double desktop = 1200; // Above: use extended NavigationRail
+}
+
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});
 
@@ -37,54 +44,98 @@ class MainScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(navigationIndexProvider);
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < Breakpoints.mobile;
+        final isCompact = width < Breakpoints.tablet;
+
+        return Scaffold(
+          // Mobile: Use bottom navigation
+          bottomNavigationBar: isMobile
+              ? NavigationBar(
+                  selectedIndex: selectedIndex,
+                  onDestinationSelected: (index) {
+                    ref.read(navigationIndexProvider.notifier).state = index;
+                  },
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.analytics_outlined),
+                      selectedIcon: Icon(Icons.analytics),
+                      label: 'Analysis',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.history_outlined),
+                      selectedIcon: Icon(Icons.history),
+                      label: 'History',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      selectedIcon: Icon(Icons.settings),
+                      label: 'Settings',
+                    ),
+                  ],
+                )
+              : null,
+          body: Stack(
             children: [
-              NavigationRail(
-                selectedIndex: selectedIndex,
-                extended: true,
-                minExtendedWidth: 200,
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.analytics_outlined),
-                    selectedIcon: Icon(Icons.analytics),
-                    label: Text('Analysis'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.history_outlined),
-                    selectedIcon: Icon(Icons.history),
-                    label: Text('History'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.settings_outlined),
-                    selectedIcon: Icon(Icons.settings),
-                    label: Text('Settings'),
-                  ),
-                ],
-                onDestinationSelected: (index) {
-                  ref.read(navigationIndexProvider.notifier).state = index;
-                },
-              ),
-              const VerticalDivider(thickness: 1, width: 1),
-              Expanded(
-                child: AnimatedSwitcher(
+              // Desktop/Tablet: Use NavigationRail
+              if (!isMobile)
+                Row(
+                  children: [
+                    NavigationRail(
+                      selectedIndex: selectedIndex,
+                      extended:
+                          !isCompact, // Collapse rail on tablet-sized screens
+                      minExtendedWidth: 200,
+                      destinations: const [
+                        NavigationRailDestination(
+                          icon: Icon(Icons.analytics_outlined),
+                          selectedIcon: Icon(Icons.analytics),
+                          label: Text('Analysis'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.history_outlined),
+                          selectedIcon: Icon(Icons.history),
+                          label: Text('History'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.settings_outlined),
+                          selectedIcon: Icon(Icons.settings),
+                          label: Text('Settings'),
+                        ),
+                      ],
+                      onDestinationSelected: (index) {
+                        ref.read(navigationIndexProvider.notifier).state =
+                            index;
+                      },
+                    ),
+                    const VerticalDivider(thickness: 1, width: 1),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: 300.ms,
+                        child: _buildBody(selectedIndex),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                // Mobile: Full-width content
+                AnimatedSwitcher(
                   duration: 300.ms,
                   child: _buildBody(selectedIndex),
                 ),
+              // 2026 Background Task Tray Implementation
+              Positioned(
+                left: isMobile ? 0 : 200, // Adjust for NavigationRail width
+                right: 0,
+                bottom: isMobile ? 56 : 0, // Above bottom nav on mobile
+                child: _BackgroundTaskTray(),
               ),
             ],
           ),
-          // 2026 Background Task Tray Implementation
-          Positioned(
-            left: 200, // Matching NavigationRail width
-            right: 0,
-            bottom: 0,
-            child: _BackgroundTaskTray(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
