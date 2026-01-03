@@ -407,6 +407,59 @@ fn find_markers(
     Err(KallsymsError::ParseError("Could not find kallsyms_markers".to_string()).into())
 }
 
+/// Validate names table structure using dynamic programming approach (vmlinux-to-elf inspired).
+/// 
+/// The names table format is: [length: u8, type: u8, token_indices: u8*]
+/// This function iterates through entries to count how many are valid.
+fn validate_names_dp(data: &[u8], names_offset: usize, claimed_count: usize) -> (usize, bool) {
+    let mut pos = names_offset;
+    let mut valid_count = 0;
+    let max_check = claimed_count.min(2000); // Don't check more than 2000 symbols
+    
+    for _ in 0..max_check {
+        if pos >= data.len() {
+            break;
+        }
+        
+        // Read length byte
+        let len = data[pos] as usize;
+        
+        // Validate length: must be >= 1 (at least type byte) and < 128 (reasonable)
+        if len == 0 || len > 127 {
+            break;
+        }
+        
+        // Check if we have enough data
+        if pos + 1 + len > data.len() {
+            break;
+        }
+        
+        // Read type character (second byte after length)
+        let type_char = data[pos + 1];
+        
+        // Valid symbol types: ASCII letters (uppercase/lowercase) or specific characters
+        // Common: T, t, W, w, A, B, D, d, R, r, S, s, etc.
+        if !type_char.is_ascii_alphabetic() && type_char != b'?' {
+            break;
+        }
+        
+        // Valid entry found
+        valid_count += 1;
+        pos += 1 + len; // Move to next entry
+    }
+    
+    // Success if at least 50% of checked entries are valid
+    let success = valid_count >= max_check / 2;
+    tracing::debug!(
+        "validate_names_dp: checked {} entries, {} valid ({}%)",
+        max_check,
+        valid_count,
+        if max_check > 0 { valid_count * 100 / max_check } else { 0 }
+    );
+    
+    (valid_count, success)
+}
+
 fn find_num_symbols_and_names(
     data: &[u8],
     markers_offset: usize,
@@ -442,8 +495,12 @@ fn find_num_symbols_and_names(
                 let names_offset = pos + size;
                 let first_len: u8 = data.pread_with(names_offset, LE).unwrap_or(0);
                 if first_len > 0 && first_len < 128 {
-                    println!("[Rust] Found num_symbols {} at 0x{:x} via Strategy 1", val, pos);
-                    return Ok((pos, val as usize, names_offset));
+                    // Use DP validation for extra confidence
+                    let (valid_count, is_valid) = validate_names_dp(data, names_offset, val as usize);
+                    if is_valid {
+                        println!("[Rust] Found num_symbols {} at 0x{:x} via Strategy 1 (DP validated: {} entries)", val, pos, valid_count);
+                        return Ok((pos, val as usize, names_offset));
+                    }
                 }
             }
         }
@@ -469,8 +526,12 @@ fn find_num_symbols_and_names(
                 let names_offset = pos + size;
                 let first_len: u8 = data.pread_with(names_offset, LE).unwrap_or(0);
                 if first_len > 0 && first_len < 128 {
-                    println!("[Rust] Found num_symbols {} at 0x{:x} via Strategy 2", val, pos);
-                    return Ok((pos, val as usize, names_offset));
+                    // Use DP validation for extra confidence
+                    let (valid_count, is_valid) = validate_names_dp(data, names_offset, val as usize);
+                    if is_valid {
+                        println!("[Rust] Found num_symbols {} at 0x{:x} via Strategy 2 (DP validated: {} entries)", val, pos, valid_count);
+                        return Ok((pos, val as usize, names_offset));
+                    }
                 }
             }
         }
