@@ -417,7 +417,7 @@ fn validate_names_dp(data: &[u8], names_offset: usize, claimed_count: usize) -> 
     let max_check = claimed_count.min(2000); // Don't check more than 2000 symbols
     
     for _ in 0..max_check {
-        if pos >= data.len() {
+        if pos + 1 >= data.len() {
             break;
         }
         
@@ -429,33 +429,29 @@ fn validate_names_dp(data: &[u8], names_offset: usize, claimed_count: usize) -> 
             break;
         }
         
-        // Check if we have enough data
+        // Check if we have enough data for this entry
         if pos + 1 + len > data.len() {
             break;
         }
         
-        // Read type character (second byte after length)
-        let type_char = data[pos + 1];
-        
-        // Valid symbol types: ASCII letters (uppercase/lowercase) or specific characters
-        // Common: T, t, W, w, A, B, D, d, R, r, S, s, etc.
-        if !type_char.is_ascii_alphabetic() && type_char != b'?' {
-            break;
-        }
-        
-        // Valid entry found
+        // Note: For compressed kallsyms, data[pos + 1] is a token_id, 
+        // not necessarily an ASCII character. We shouldn't check it here
+        // unless we have the token table. 
+        // 
+        // Instead, we just check if the sequence of lengths is consistent.
+
         valid_count += 1;
         pos += 1 + len; // Move to next entry
     }
     
-    // Success if at least 50% of checked entries are valid
-    let success = valid_count >= max_check / 2;
-    tracing::debug!(
-        "validate_names_dp: checked {} entries, {} valid ({}%)",
-        max_check,
-        valid_count,
-        if max_check > 0 { valid_count * 100 / max_check } else { 0 }
-    );
+    // Success if we reached at least 50 entries or 50% of claimed (whichever is smaller)
+    let threshold = if max_check < 50 { max_check / 2 } else { 50 };
+    let success = valid_count >= threshold;
+    
+    if !success && valid_count > 0 {
+        println!("[Rust] validate_names_dp failed: only {} of {} entries look valid at 0x{:x}", 
+                 valid_count, max_check, names_offset);
+    }
     
     (valid_count, success)
 }
@@ -476,7 +472,8 @@ fn find_num_symbols_and_names(
     // Strategy 1: num_symbols is right before names, and names is right before markers.
     // names_offset = markers_offset - (last_marker_val + last_block_size)
     // We try different last_block_size values (usually small).
-    for last_block_size in (0..4096).step_by(4) {
+    // Note: for large kernels, the last block could be quite large.
+    for last_block_size in (0..32768).step_by(1) {
         let names_offset_guess = markers_offset.saturating_sub(last_marker_val as usize + last_block_size);
         if names_offset_guess < 8 { continue; }
 
@@ -919,59 +916,33 @@ mod tests {
     
     #[test]
     fn test_validate_names_dp_valid_entries() {
-        // Format: [len, type, token_indices...]
-        // Create 10 valid entries: len=2, type='T', one token byte
+        // Format: [len, token_id_1, token_id_2...]
+        // Create 60 valid entries: len=2, first byte is token_id (not necessarily ASCII)
         let mut data = Vec::new();
-        for _ in 0..10 {
+        for i in 0..60 {
             data.push(2);    // length = 2
-            data.push(b'T'); // type = 'T'
+            data.push(i as u8); // token_id = i (could be anything)
             data.push(0);    // token index
         }
         
-        let (valid_count, is_valid) = validate_names_dp(&data, 0, 10);
-        assert_eq!(valid_count, 10);
+        let (valid_count, is_valid) = validate_names_dp(&data, 0, 60);
+        assert_eq!(valid_count, 60);
         assert!(is_valid);
     }
     
     #[test]
     fn test_validate_names_dp_zero_length() {
         // Zero length should fail immediately
-        let data = vec![0u8, b'T', 0];
+        let data = vec![0u8, 0, 0];
         
         let (valid_count, _) = validate_names_dp(&data, 0, 10);
         assert_eq!(valid_count, 0);
     }
     
     #[test]
-    fn test_validate_names_dp_invalid_type() {
-        // Non-alphabetic type should fail
-        let data = vec![2, b'!', 0]; // '!' is not a valid type
-        
-        let (valid_count, _) = validate_names_dp(&data, 0, 10);
-        assert_eq!(valid_count, 0);
-    }
-    
-    #[test]
-    fn test_validate_names_dp_mixed_types() {
-        // Test various valid symbol types
-        let mut data = Vec::new();
-        let valid_types = [b'T', b't', b'D', b'd', b'R', b'r', b'B', b'W', b'A', b'V'];
-        
-        for &t in &valid_types {
-            data.push(2);   // length
-            data.push(t);   // type
-            data.push(0);   // token
-        }
-        
-        let (valid_count, is_valid) = validate_names_dp(&data, 0, valid_types.len());
-        assert_eq!(valid_count, valid_types.len());
-        assert!(is_valid);
-    }
-    
-    #[test]
-    fn test_validate_names_dp_length_too_large() {
+    fn test_validate_names_dp_invalid_length() {
         // Length > 127 should fail
-        let data = vec![128, b'T', 0];
+        let data = vec![255, 0, 0];
         
         let (valid_count, _) = validate_names_dp(&data, 0, 10);
         assert_eq!(valid_count, 0);
