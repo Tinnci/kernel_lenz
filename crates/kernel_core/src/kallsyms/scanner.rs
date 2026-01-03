@@ -833,3 +833,218 @@ fn validate_relative_offsets(
     
     Some(quality)
 }
+
+// ============================================================
+// Tests
+// ============================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- Test detect_architecture ---
+    
+    #[test]
+    fn test_detect_architecture_arm64_magic() {
+        // ARM64 kernel has "ARM\x64" at offset 0x38
+        let mut data = vec![0u8; 0x100];
+        data[0x38..0x3C].copy_from_slice(b"ARM\x64");
+        
+        assert_eq!(detect_architecture(&data), KernelArch::Arm64);
+    }
+    
+    #[test]
+    fn test_detect_architecture_unknown_empty() {
+        let data = vec![0u8; 100];
+        assert_eq!(detect_architecture(&data), KernelArch::Unknown);
+    }
+    
+    #[test]
+    fn test_detect_architecture_too_small() {
+        let data = vec![0u8; 10];
+        assert_eq!(detect_architecture(&data), KernelArch::Unknown);
+    }
+
+    // --- Test ScanOptions ---
+    
+    #[test]
+    fn test_scan_options_default() {
+        let options = ScanOptions::default();
+        assert!(!options.override_relative);
+    }
+    
+    #[test]
+    fn test_scan_options_override() {
+        let options = ScanOptions { override_relative: true };
+        assert!(options.override_relative);
+    }
+
+    // --- Test is_valid_kernel_base ---
+    
+    #[test]
+    fn test_valid_kernel_base_arm64() {
+        // Typical ARM64 kernel base
+        assert!(is_valid_kernel_base(0xFFFF_8000_0000_0000, KernelArch::Arm64));
+        assert!(is_valid_kernel_base(0xFFFF_FFFF_8000_0000, KernelArch::Arm64));
+    }
+    
+    #[test]
+    fn test_valid_kernel_base_x86_64() {
+        // Typical x86_64 kernel base
+        assert!(is_valid_kernel_base(0xFFFF_FFFF_8000_0000, KernelArch::X86_64));
+        assert!(is_valid_kernel_base(0xFFFF_8880_0000_0000, KernelArch::X86_64));
+    }
+    
+    #[test]
+    fn test_invalid_kernel_base_userspace() {
+        // Userspace addresses should be invalid
+        assert!(!is_valid_kernel_base(0x0000_0000_0040_0000, KernelArch::Arm64));
+        assert!(!is_valid_kernel_base(0x0000_7FFF_FFFF_FFFF, KernelArch::X86_64));
+    }
+    
+    #[test]
+    fn test_invalid_kernel_base_zero() {
+        assert!(!is_valid_kernel_base(0, KernelArch::Arm64));
+        assert!(!is_valid_kernel_base(0, KernelArch::X86_64));
+    }
+    
+    #[test]
+    fn test_valid_kernel_base_arm32() {
+        // ARM32 kernel bases are typically 0xC0000000+
+        assert!(is_valid_kernel_base(0xC000_0000, KernelArch::Arm32));
+        assert!(is_valid_kernel_base(0xC010_0000, KernelArch::Arm32));
+    }
+
+    // --- Test validate_names_dp ---
+    
+    #[test]
+    fn test_validate_names_dp_valid_entries() {
+        // Format: [len, type, token_indices...]
+        // Create 10 valid entries: len=2, type='T', one token byte
+        let mut data = Vec::new();
+        for _ in 0..10 {
+            data.push(2);    // length = 2
+            data.push(b'T'); // type = 'T'
+            data.push(0);    // token index
+        }
+        
+        let (valid_count, is_valid) = validate_names_dp(&data, 0, 10);
+        assert_eq!(valid_count, 10);
+        assert!(is_valid);
+    }
+    
+    #[test]
+    fn test_validate_names_dp_zero_length() {
+        // Zero length should fail immediately
+        let data = vec![0u8, b'T', 0];
+        
+        let (valid_count, _) = validate_names_dp(&data, 0, 10);
+        assert_eq!(valid_count, 0);
+    }
+    
+    #[test]
+    fn test_validate_names_dp_invalid_type() {
+        // Non-alphabetic type should fail
+        let data = vec![2, b'!', 0]; // '!' is not a valid type
+        
+        let (valid_count, _) = validate_names_dp(&data, 0, 10);
+        assert_eq!(valid_count, 0);
+    }
+    
+    #[test]
+    fn test_validate_names_dp_mixed_types() {
+        // Test various valid symbol types
+        let mut data = Vec::new();
+        let valid_types = [b'T', b't', b'D', b'd', b'R', b'r', b'B', b'W', b'A', b'V'];
+        
+        for &t in &valid_types {
+            data.push(2);   // length
+            data.push(t);   // type
+            data.push(0);   // token
+        }
+        
+        let (valid_count, is_valid) = validate_names_dp(&data, 0, valid_types.len());
+        assert_eq!(valid_count, valid_types.len());
+        assert!(is_valid);
+    }
+    
+    #[test]
+    fn test_validate_names_dp_length_too_large() {
+        // Length > 127 should fail
+        let data = vec![128, b'T', 0];
+        
+        let (valid_count, _) = validate_names_dp(&data, 0, 10);
+        assert_eq!(valid_count, 0);
+    }
+
+    // --- Test validate_relative_offsets ---
+    
+    #[test]
+    fn test_validate_relative_offsets_valid() {
+        // Create valid relative offset table
+        // Base: 0xFFFF_8000_1000_0000, offsets: 0, 0x100, 0x200, 0x300...
+        let base: u64 = 0xFFFF_8000_1000_0000;
+        let num_symbols = 100;
+        
+        let mut data = vec![0u8; num_symbols * 4 + 8]; // Extra space
+        for i in 0..num_symbols {
+            let offset: i32 = (i * 0x100) as i32;
+            let pos = i * 4;
+            data[pos..pos + 4].copy_from_slice(&offset.to_le_bytes());
+        }
+        
+        let result = validate_relative_offsets(&data, 0, num_symbols, base, false);
+        assert!(result.is_some());
+        
+        let quality = result.unwrap();
+        assert!(quality > 0.5, "Quality should be > 0.5 for valid data, got {}", quality);
+    }
+    
+    #[test]
+    fn test_validate_relative_offsets_too_many_nulls() {
+        // All offsets result in address 0 (offset = -base)
+        let base: u64 = 0x1000;
+        let num_symbols = 100;
+        let offset: i32 = -(base as i32);
+        
+        let mut data = vec![0u8; num_symbols * 4];
+        for i in 0..num_symbols {
+            let pos = i * 4;
+            data[pos..pos + 4].copy_from_slice(&offset.to_le_bytes());
+        }
+        
+        // This should fail due to >20% null addresses
+        let result = validate_relative_offsets(&data, 0, num_symbols, base, false);
+        assert!(result.is_none());
+    }
+    
+    #[test]
+    fn test_validate_relative_offsets_ascending() {
+        // Strictly ascending offsets should have high quality
+        let base: u64 = 0xFFFF_8000_0000_0000;
+        let num_symbols = 50;
+        
+        let mut data = vec![0u8; num_symbols * 4];
+        for i in 0..num_symbols {
+            let offset: i32 = (i * 0x1000) as i32; // Each symbol 4KB apart
+            let pos = i * 4;
+            data[pos..pos + 4].copy_from_slice(&offset.to_le_bytes());
+        }
+        
+        let result = validate_relative_offsets(&data, 0, num_symbols, base, false);
+        assert!(result.is_some());
+        
+        let quality = result.unwrap();
+        assert!(quality > 0.7, "Ascending sequence should have quality > 0.7, got {}", quality);
+    }
+
+    // --- Test TOKEN_TABLE_AVOID_PATTERNS ---
+    
+    #[test]
+    fn test_token_table_avoid_patterns_exist() {
+        // Verify the avoid patterns are defined correctly
+        assert!(TOKEN_TABLE_AVOID_PATTERNS.contains(&b":\0".as_slice()));
+        assert!(TOKEN_TABLE_AVOID_PATTERNS.contains(&b"\0\0".as_slice()));
+        assert!(TOKEN_TABLE_AVOID_PATTERNS.contains(&b"ASCII\0".as_slice()));
+    }
+}
