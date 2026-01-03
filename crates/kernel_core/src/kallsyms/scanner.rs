@@ -135,6 +135,16 @@ pub fn infer_config(scan: &ScanResult) -> Result<KallsymsConfig> {
 
 // --- Implementation Logic ---
 
+/// Patterns to avoid when searching for token table (vmlinux-to-elf inspired)
+/// These patterns after "0123456789" indicate false positives
+const TOKEN_TABLE_AVOID_PATTERNS: &[&[u8]] = &[
+    b":\0",      // ':' comes after '9' in ASCII but shouldn't be in token table
+    b"\0\0",     // Double null might indicate data boundary
+    b"\0\x01",   // Control characters
+    b"\0\x02",
+    b"ASCII\0",  // String literal marker
+];
+
 fn find_token_anchors(data: &[u8]) -> Result<(usize, usize, bool)> {
     // Search for "0\01\0...9\0"
     let mut seq = Vec::with_capacity(20);
@@ -143,48 +153,81 @@ fn find_token_anchors(data: &[u8]) -> Result<(usize, usize, bool)> {
         seq.push(0);
     }
 
+    let mut candidates: Vec<usize> = Vec::new();
+    let mut candidates_with_ascii_follow: Vec<usize> = Vec::new();
+
     let mut pos = 0;
     while let Some(found_pos) = data[pos..].windows(seq.len()).position(|w| w == seq) {
         let abs_pos = pos + found_pos;
-
-        // Backtrack to token 0
-        let mut table_start = abs_pos;
-        let token_count = b'0' as usize;
-        let mut failed = false;
-
-        for _ in 0..token_count {
-            // Each token is null-terminated string.
-            // Search back for previous null.
-            if table_start == 0 {
-                failed = true;
+        
+        // Check for avoidance patterns after the sequence
+        let after_seq = abs_pos + seq.len();
+        let mut should_avoid = false;
+        
+        for pattern in TOKEN_TABLE_AVOID_PATTERNS {
+            if after_seq + pattern.len() <= data.len() 
+               && &data[after_seq..after_seq + pattern.len()] == *pattern {
+                should_avoid = true;
+                tracing::debug!("Token table candidate at 0x{:x} avoided due to pattern", abs_pos);
                 break;
             }
-            table_start -= 1;
-            let mut len = 0;
-            while table_start > 0 && data[table_start - 1] != 0 {
-                table_start -= 1;
-                len += 1;
-                if len > 64 {
+        }
+        
+        if !should_avoid {
+            // Backtrack to token 0
+            let mut table_start = abs_pos;
+            let token_count = b'0' as usize;
+            let mut failed = false;
+
+            for _ in 0..token_count {
+                // Each token is null-terminated string.
+                // Search back for previous null.
+                if table_start == 0 {
                     failed = true;
                     break;
                 }
+                table_start -= 1;
+                let mut len = 0;
+                while table_start > 0 && data[table_start - 1] != 0 {
+                    table_start -= 1;
+                    len += 1;
+                    if len > 64 {
+                        failed = true;
+                        break;
+                    }
+                }
+                if failed {
+                    break;
+                }
             }
-            if failed {
-                break;
-            }
-        }
 
-        if !failed {
-            // 2026-01-02: Removed alignment. Token table is a sequence of strings
-            // and doesn't necessarily start on a 4-byte boundary.
-            // table_start = (table_start + 3) & !3;
-            
-            // Verify by looking for the token index
-            if let Ok((index_offset, be)) = find_token_index_and_endianness(data, table_start) {
-                return Ok((table_start, index_offset, be));
+            if !failed {
+                candidates.push(table_start);
+                
+                // Check if followed by ASCII character (higher confidence)
+                if after_seq < data.len() && data[after_seq].is_ascii_alphanumeric() {
+                    candidates_with_ascii_follow.push(table_start);
+                }
             }
         }
         pos = abs_pos + 1;
+    }
+    
+    // Prefer candidates followed by ASCII, fall back to all candidates
+    let final_candidates = if candidates_with_ascii_follow.len() == 1 {
+        candidates_with_ascii_follow
+    } else if !candidates.is_empty() {
+        candidates
+    } else {
+        return Err(KallsymsError::TokenTableNotFound.into());
+    };
+    
+    // Try each candidate until one validates
+    for table_start in final_candidates {
+        if let Ok((index_offset, be)) = find_token_index_and_endianness(data, table_start) {
+            println!("[Rust] Token table validated at 0x{:x}", table_start);
+            return Ok((table_start, index_offset, be));
+        }
     }
 
     Err(KallsymsError::TokenTableNotFound.into())
@@ -241,7 +284,7 @@ fn find_markers(
 ) -> Result<(usize, usize, usize, u64)> {
     // Markers contain offsets in names for every 256 symbols.
     // markers[0] == 0, markers[i] > markers[i-1].
-    // Increments are usually between 0x100 and 0x10000 (heuristic).
+    // vmlinux-to-elf uses: increments between 0x200 and 0x4000
 
     for element_size in [8, 4, 2] {
         let mut pos = token_table_offset;
@@ -286,8 +329,8 @@ fn find_markers(
                     }
                 };
 
-                // Lenient increment check: 64 bytes to 64KB
-                if val <= last_val || val < last_val + 0x40 || val > last_val + 0x10000 {
+                // Tighter increment check (vmlinux-to-elf style): 0x200 to 0x4000
+                if val <= last_val || val < last_val + 0x200 || val > last_val + 0x4000 {
                     valid = false;
                     break;
                 }
@@ -314,7 +357,7 @@ fn find_markers(
                         }
                     };
                     
-                    if val <= last_val || val > last_val + 0x10000 { break; }
+                    if val <= last_val || val > last_val + 0x4000 { break; }
                     last_val = val;
                     count += 1;
                     current_pos += element_size;

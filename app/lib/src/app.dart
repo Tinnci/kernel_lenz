@@ -964,9 +964,10 @@ class _HexViewerSheetState extends ConsumerState<HexViewerSheet> {
                 child: const Row(
                   children: [
                     SizedBox(width: 85, child: Text('OFFSET')),
-                    SizedBox(width: 20),
+                    SizedBox(width: 12),
                     Expanded(child: Text('HEX BYTES')),
-                    SizedBox(width: 150, child: Text('ASCII')),
+                    SizedBox(width: 8),
+                    SizedBox(width: 130, child: Text('ASCII')),
                   ],
                 ),
               ),
@@ -1028,44 +1029,62 @@ class _HexLine extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 12),
+          // Use Expanded with a clipped layout to prevent overflow
           Expanded(
-            child: Row(
-              children: List.generate(16, (i) {
-                if (i >= bytes.length) return const SizedBox(width: 28);
-                final b = bytes[i];
-                final hex = b.toRadixString(16).padLeft(2, '0').toUpperCase();
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Calculate available width per byte
+                // 16 bytes + group spacing (3 groups * 6px) = 16 * byteWidth + 18
+                final byteWidth = (constraints.maxWidth - 18) / 16;
 
-                return Container(
-                  width: 28,
-                  margin: EdgeInsets.only(right: (i + 1) % 4 == 0 ? 8 : 2),
-                  child: Text(
-                    hex,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                      color: b == 0
-                          ? Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withAlpha(40)
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(16, (i) {
+                    if (i >= bytes.length) {
+                      return SizedBox(width: byteWidth);
+                    }
+                    final b = bytes[i];
+                    final hex = b
+                        .toRadixString(16)
+                        .padLeft(2, '0')
+                        .toUpperCase();
+                    final isGroupEnd = (i + 1) % 4 == 0 && i < 15;
+
+                    return SizedBox(
+                      width: byteWidth + (isGroupEnd ? 6 : 0),
+                      child: Text(
+                        hex,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          color: b == 0
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withAlpha(40)
+                              : Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    );
+                  }),
                 );
-              }),
+              },
             ),
           ),
+          const SizedBox(width: 8),
+          // ASCII column - use Text with ellipsis for overflow protection
           SizedBox(
-            width: 150,
+            width: 130,
             child: Text(
               String.fromCharCodes(
                 bytes.map((b) => (b >= 32 && b <= 126) ? b : 46),
               ),
               style: TextStyle(
                 fontFamily: 'monospace',
-                fontSize: 13,
+                fontSize: 12,
                 color: Theme.of(context).colorScheme.primary.withAlpha(150),
               ),
+              overflow: TextOverflow.clip,
             ),
           ),
         ],
